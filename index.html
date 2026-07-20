@@ -1,0 +1,2319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>EATING SNAKES</title>
+<style>
+  :root{
+    --bg-deep:#070b12;
+    --accent:#5ef2c0;
+    --accent-2:#ff5d73;
+    --gold:#ffd166;
+    --panel:#0d1420;
+    --panel-line:#1c2b3d;
+    --text:#eaf2f4;
+    --text-dim:#7f93a6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{
+    width:100%;height:100%;overflow:hidden;
+    background:var(--bg-deep);
+    font-family:'Segoe UI',"Malgun Gothic","맑은 고딕",sans-serif;
+    color:var(--text);
+  }
+  #gameCanvas{display:block;background:var(--bg-deep);cursor:default;touch-action:none;}
+
+  .overlayScreen{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(94,242,192,0.08), transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(255,93,115,0.08), transparent 40%),
+      var(--bg-deep);
+    z-index:50;
+  }
+  .card{
+    width:420px;max-width:92vw;
+    background:var(--panel);border:1px solid var(--panel-line);border-radius:14px;
+    padding:32px 30px;box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    max-height:88vh;overflow-y:auto;
+  }
+  .eyebrow{font-size:12px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;margin-bottom:4px;font-weight:700;}
+  .heading{font-size:28px;font-weight:800;margin-bottom:18px;letter-spacing:-0.5px;}
+  .heading span{color:var(--accent);}
+  label.fieldLabel{display:block;font-size:12px;color:var(--text-dim);margin:14px 0 6px;letter-spacing:0.5px;text-transform:uppercase;}
+  input[type=text],input[type=password]{
+    width:100%;padding:11px 12px;border-radius:8px;background:#0a121c;border:1px solid var(--panel-line);
+    color:var(--text);font-size:15px;outline:none;
+  }
+  input[type=text]:focus,input[type=password]:focus{border-color:var(--accent);}
+  .tabRow{display:flex;gap:8px;margin-bottom:6px;}
+  .tabBtn{
+    flex:1;padding:10px;border-radius:8px;border:1px solid var(--panel-line);background:#0a121c;
+    color:var(--text-dim);cursor:pointer;font-weight:700;font-size:13px;
+  }
+  .tabBtn.active{border-color:var(--accent);color:var(--accent);background:rgba(94,242,192,0.08);}
+  .bigBtn{
+    width:100%;margin-top:20px;padding:14px;border:none;border-radius:9px;
+    background:linear-gradient(135deg,var(--accent),#33c99a);color:#04140d;font-weight:800;font-size:16px;
+    letter-spacing:1px;cursor:pointer;
+  }
+  .bigBtn.secondary{background:linear-gradient(135deg,#3a4a5c,#243040);color:var(--text);}
+  .ghostBtn{background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;text-decoration:underline;}
+  .errMsg{color:var(--accent-2);font-size:12px;margin-top:8px;min-height:14px;}
+
+  /* profile bar */
+  .profileBar{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:#0a121c;border:1px solid var(--panel-line);border-radius:10px;padding:10px 14px;margin-bottom:16px;
+  }
+  .tierBadge{font-weight:800;font-size:13px;padding:4px 10px;border-radius:20px;}
+  .diamondCount{color:var(--gold);font-weight:700;font-size:13px;}
+  .profileName{font-weight:700;font-size:14px;}
+  .profileMeta{font-size:11px;color:var(--text-dim);}
+
+  .colorRow{display:flex;gap:10px;align-items:center;margin-top:4px;}
+  .colorSwatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s;}
+  .colorSwatch.selected{border-color:#fff;transform:scale(1.15);}
+  #customColor{width:34px;height:28px;border:none;background:none;cursor:pointer;}
+  .modeRow{display:flex;gap:10px;margin-top:6px;}
+  .modeBtn{
+    flex:1;padding:12px 8px;border-radius:9px;border:1px solid var(--panel-line);background:#0a121c;
+    color:var(--text-dim);cursor:pointer;font-size:13px;font-weight:600;text-align:center;transition:all .15s;
+  }
+  .modeBtn.active{border-color:var(--accent);color:var(--accent);background:rgba(94,242,192,0.08);}
+
+  .actionGrid{display:flex;gap:8px;margin-top:16px;}
+  .actionGrid button{
+    flex:1;padding:10px 6px;border-radius:9px;border:1px solid var(--panel-line);background:#0a121c;
+    color:var(--text);cursor:pointer;font-size:12px;font-weight:700;
+  }
+  .actionGrid button:hover{border-color:var(--accent);color:var(--accent);}
+
+  .redeemRow{display:flex;gap:8px;margin-top:6px;}
+  .redeemRow input{flex:1;}
+  .redeemRow button{
+    padding:0 16px;border:none;border-radius:8px;background:var(--gold);color:#231a00;font-weight:800;cursor:pointer;
+  }
+  #logoutBtn{margin-top:10px;width:100%;background:none;border:1px solid var(--panel-line);color:var(--text-dim);
+    padding:8px;border-radius:8px;cursor:pointer;font-size:12px;}
+
+  /* modal */
+  .modalOverlay{position:fixed;inset:0;background:rgba(4,6,10,0.82);z-index:70;display:none;align-items:center;justify-content:center;}
+  .modalOverlay.show{display:flex;}
+  .modalCard{background:var(--panel);border:1px solid var(--panel-line);border-radius:14px;padding:26px 26px;width:460px;max-width:92vw;max-height:85vh;overflow-y:auto;}
+  .modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .modalHead h3{font-size:19px;}
+  .closeX{background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;}
+
+  .flagGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .flagItem{
+    background:#0a121c;border:1px solid var(--panel-line);border-radius:10px;padding:12px;text-align:center;
+  }
+  .flagPreview{font-size:30px;height:40px;display:flex;align-items:center;justify-content:center;}
+  .flagName{font-size:12px;font-weight:700;margin:6px 0 2px;}
+  .flagPrice{font-size:11px;color:var(--gold);margin-bottom:8px;}
+  .flagItem button{
+    width:100%;padding:7px;border:none;border-radius:7px;font-weight:700;font-size:12px;cursor:pointer;
+    background:var(--accent);color:#04140d;
+  }
+  .flagItem button.owned{background:#243040;color:var(--text-dim);}
+  .flagItem button.equipped{background:var(--gold);color:#231a00;}
+  .flagItem button[disabled]{opacity:0.6;cursor:not-allowed;}
+
+  .questItem{
+    background:#0a121c;border:1px solid var(--panel-line);border-radius:10px;padding:12px 14px;margin-bottom:10px;
+  }
+  .questTop{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:8px;}
+  .questBarBg{background:#1c2b3d;height:8px;border-radius:6px;overflow:hidden;}
+  .questBarFill{background:var(--accent);height:100%;transition:width .2s;}
+  .questDone{color:var(--accent);}
+  #claimQuestBtn{width:100%;margin-top:6px;}
+  #claimQuestBtn:disabled{opacity:0.4;cursor:not-allowed;}
+
+  /* HUD */
+  #hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:16px 20px;pointer-events:none;z-index:10;}
+  #scorePanel{background:rgba(13,20,32,0.75);border:1px solid var(--panel-line);border-radius:10px;padding:10px 16px;font-size:13px;color:var(--text-dim);backdrop-filter:blur(4px);}
+  #scorePanel b{color:var(--accent);font-size:18px;display:block;}
+  #playerTag{background:rgba(13,20,32,0.75);border:1px solid var(--panel-line);border-radius:10px;padding:10px 16px;text-align:right;backdrop-filter:blur(4px);min-width:150px;}
+  #playerTagName{font-weight:700;font-size:14px;}
+  #playerTagMode{font-size:11px;color:var(--text-dim);margin-top:2px;}
+  #leaderboard{position:fixed;top:80px;right:20px;z-index:10;background:rgba(13,20,32,0.75);border:1px solid var(--panel-line);border-radius:10px;padding:10px 14px;min-width:170px;backdrop-filter:blur(4px);}
+  #leaderboard h4{font-size:11px;color:var(--text-dim);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase;}
+  .lbRow{display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--text);}
+  .lbRow.me{color:var(--accent);font-weight:700;}
+  .lbFriendBtn{
+    pointer-events:auto;cursor:pointer;border:1px solid var(--panel-line);background:#0a121c;color:var(--accent);
+    border-radius:5px;font-size:10px;padding:1px 5px;margin-left:4px;
+  }
+  .lbFriendBtn:hover{border-color:var(--accent);}
+  .lbFriendTag{margin-left:4px;font-size:11px;}
+
+  #deathScreen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,6,10,0.82);z-index:60;}
+  .deathCard{background:var(--panel);border:1px solid var(--panel-line);border-radius:14px;padding:34px 40px;text-align:center;}
+  .deathCard h2{color:var(--accent-2);font-size:26px;margin-bottom:8px;}
+  .deathCard p{color:var(--text-dim);font-size:13px;margin-bottom:20px;}
+  .deathCard button{padding:12px 26px;border:none;border-radius:9px;background:var(--accent);color:#04140d;font-weight:800;cursor:pointer;font-size:14px;}
+  #reviveBtn{background:linear-gradient(135deg,var(--gold),#e0a83a);color:#231a00;width:100%;}
+
+  #minimapWrap{
+    position:fixed;bottom:20px;right:20px;z-index:10;
+    background:rgba(13,20,32,0.75);border:1px solid var(--panel-line);border-radius:10px;
+    padding:8px;backdrop-filter:blur(4px);display:none;
+  }
+  #minimap{display:block;border-radius:6px;background:#0a121c;}
+  #minimapLabel{font-size:10px;color:var(--text-dim);text-align:center;margin-top:4px;letter-spacing:1px;text-transform:uppercase;}
+
+  #boostBtn{
+    position:fixed;left:24px;bottom:34px;z-index:20;
+    width:78px;height:78px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, rgba(94,242,192,0.35), rgba(13,20,32,0.85));
+    border:2px solid var(--accent);color:var(--accent);
+    font-size:32px;display:flex;align-items:center;justify-content:center;
+    user-select:none;-webkit-user-select:none;touch-action:none;
+  }
+  #boostBtn.pressed{background:radial-gradient(circle at 35% 30%, rgba(94,242,192,0.6), rgba(13,20,32,0.9));transform:scale(0.92);}
+
+  #devEdgeBtn{
+    position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:25;
+    width:14px;height:34px;border-radius:0 6px 6px 0;
+    background:rgba(60,60,60,0.35);border:1px solid rgba(255,255,255,0.12);border-left:none;color:rgba(255,255,255,0.5);
+    font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    padding:0;
+  }
+  #devEdgeBtn:hover{background:rgba(90,90,90,0.55);color:rgba(255,255,255,0.85);}
+  #devModeTag{
+    position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:25;
+    background:rgba(255,209,102,0.95);color:#231a00;font-weight:800;font-size:12px;
+    padding:8px 10px 8px 16px;border-radius:10px;display:flex;align-items:center;gap:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.35);
+  }
+  #devExitBtn{
+    background:#231a00;color:#ffd166;border:none;border-radius:6px;padding:5px 10px;font-size:11px;
+    font-weight:700;cursor:pointer;
+  }
+
+  .toggleSwitch{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0;}
+  .toggleSwitch input{opacity:0;width:0;height:0;}
+  .toggleSlider{position:absolute;cursor:pointer;inset:0;background:#1c2b3d;border-radius:26px;transition:.2s;}
+  .toggleSlider::before{content:"";position:absolute;height:20px;width:20px;left:3px;top:3px;background:#7f93a6;border-radius:50%;transition:.2s;}
+  .toggleSwitch input:checked + .toggleSlider{background:rgba(94,242,192,0.35);}
+  .toggleSwitch input:checked + .toggleSlider::before{transform:translateX(20px);background:var(--accent);}
+
+  /* ===================== 홈 화면 (2D) ===================== */
+  .homeStat{
+    background:#0a121c;border:1px solid var(--panel-line);border-radius:8px;
+    padding:9px 14px;font-weight:700;font-size:13px;
+  }
+  .homeStatRow{display:flex;align-items:center;gap:8px;margin:16px 0;flex-wrap:wrap;}
+  .homeStatRow .tierBadge{margin:0;}
+
+  .faqLink{
+    display:block;text-align:center;margin-top:14px;color:var(--text-dim);font-size:12px;
+    text-decoration:none;
+  }
+  .faqLink:hover{color:var(--accent);}
+
+  #toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--panel);border:1px solid var(--gold);color:var(--gold);
+    padding:12px 22px;border-radius:10px;font-weight:700;font-size:13px;
+    opacity:0;transition:opacity .3s;z-index:80;pointer-events:none;
+  }
+  #toast.show{opacity:1;}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<!-- ===================== AUTH SCREEN ===================== -->
+<div id="authScreen" class="overlayScreen">
+  <div class="card">
+    <div class="eyebrow">Multiplayer Arena</div>
+    <div class="heading">EATING <span>SNAKES</span></div>
+
+    <div class="tabRow">
+      <div class="tabBtn active" data-tab="login">로그인</div>
+      <div class="tabBtn" data-tab="register">회원가입</div>
+    </div>
+
+    <label class="fieldLabel">아이디</label>
+    <input type="text" id="authId" maxlength="16" placeholder="아이디 입력">
+    <label class="fieldLabel">비밀번호</label>
+    <input type="password" id="authPw" maxlength="24" placeholder="비밀번호 입력">
+
+    <div class="errMsg" id="authErr"></div>
+    <button class="bigBtn" id="authSubmitBtn">로그인</button>
+    <button class="bigBtn secondary" id="guestBtn">게스트로 시작하기</button>
+    <div class="errMsg" style="color:var(--text-dim);margin-top:10px;">
+      ※ 이 로그인은 서버가 아닌 "이 브라우저"에만 저장되는 로컬 데모 계정입니다. 실제 서버 인증이 아니니 진짜 비밀번호를 쓰지 마세요.
+      시크릿(비공개) 모드는 창을 닫으면 저장된 데이터가 모두 사라지고, 평소 모드에서 만든 계정과도 공유되지 않아요. 시크릿 창 안에서 새로 회원가입하면 그 창이 열려있는 동안은 정상적으로 로그인할 수 있어요.
+    </div>
+    <a href="https://hijaeheon.github.io/faq/" class="faqLink">❓ 자주 묻는 질문</a>
+  </div>
+</div>
+
+<!-- ===================== HOME SCREEN ===================== -->
+<div id="homeScreen" class="overlayScreen" style="display:none;">
+  <div class="card">
+    <div class="eyebrow">Multiplayer Arena</div>
+    <div class="heading">EATING <span>SNAKES</span></div>
+    <div id="pbName" style="font-weight:700;font-size:15px;">-</div>
+
+    <div class="homeStatRow">
+      <div class="homeStat">💎 <span id="pbDiamonds">0</span></div>
+      <div class="tierBadge" id="pbTier">브론즈</div>
+      <div class="homeStat">처치 <span id="pbKills">0</span></div>
+    </div>
+
+    <div class="actionGrid">
+      <button id="openShopBtn">🏪 상점</button>
+      <button id="openColorBtn">🎨 색상</button>
+      <button id="openQuestBtn">📋 일일퀘스트 <span id="questBadge"></span></button>
+      <button id="openSettingsBtn">⚙️ 설정</button>
+    </div>
+
+    <label class="fieldLabel" style="margin-top:20px;">모드 선택</label>
+    <div class="modeRow">
+      <div class="modeBtn active" data-mode="ai">🤖 AI전</div>
+      <div class="modeBtn" data-mode="online">🌐 온라인</div>
+    </div>
+    <button class="bigBtn" id="playBtn">게임 시작</button>
+    <div class="errMsg" style="color:var(--text-dim);margin-top:10px;">
+      ※ 온라인 모드는 이제 다른 컴퓨터에 있는 사람과도 실제로 만날 수 있어요 (서버 없이 브라우저끼리 직접 연결되는 WebRTC 방식). 같은 순간에 온라인 모드로 들어와 있어야 서로 만날 수 있고, 방화벽이 까다로운 네트워크(회사/학교 등)에서는 연결이 안 될 수도 있어요.
+      로그인한 유저와 게스트는 서로 다른 방에 배정되어 마주치지 않아요.
+      게스트로 플레이하면 다이아·티어·처치 기록은 저장되지 않아요.
+    </div>
+
+    <button id="logoutBtnTop" style="width:100%;margin-top:14px;background:none;border:1px solid var(--panel-line);color:var(--text-dim);border-radius:8px;padding:10px;cursor:pointer;">로그아웃</button>
+    <a href="https://hijaeheon.github.io/faq/" class="faqLink">❓ 자주 묻는 질문</a>
+  </div>
+</div>
+
+<!-- ===================== COLOR MODAL ===================== -->
+<div id="colorModal" class="modalOverlay">
+  <div class="modalCard">
+    <div class="modalHead">
+      <h3>🎨 뱀 색상</h3>
+      <button class="closeX" data-close="colorModal">✕</button>
+    </div>
+    <div class="colorRow" id="colorRow">
+      <div class="colorSwatch selected" style="background:#5ef2c0" data-color="#5ef2c0"></div>
+      <div class="colorSwatch" style="background:#ff5d73" data-color="#ff5d73"></div>
+      <div class="colorSwatch" style="background:#ffd166" data-color="#ffd166"></div>
+      <div class="colorSwatch" style="background:#6ea8ff" data-color="#6ea8ff"></div>
+      <div class="colorSwatch" style="background:#c77dff" data-color="#c77dff"></div>
+      <input type="color" id="customColor" value="#5ef2c0">
+    </div>
+    <div class="errMsg" id="skinLockNote" style="display:none;color:var(--text-dim);">
+      🐍 스킨이 장착되어 있어 색상을 바꿀 수 없어요. 상점에서 '기본'을 장착하면 다시 바꿀 수 있어요.
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SHOP MODAL ===================== -->
+<div id="shopModal" class="modalOverlay">
+  <div class="modalCard">
+    <div class="modalHead">
+      <h3 id="shopTitle">🏳️ 상점</h3>
+      <button class="closeX" data-close="shopModal">✕</button>
+    </div>
+    <div class="tabRow">
+      <div class="tabBtn active" data-shoptab="flag">🏳️ 깃발</div>
+      <div class="tabBtn" data-shoptab="skin">🐍 스킨</div>
+    </div>
+    <div class="diamondCount" style="margin:12px 0 14px;">보유 다이아몬드: 💎 <span id="shopDiamonds">0</span></div>
+    <div class="flagGrid" id="flagGrid"></div>
+    <div class="flagGrid" id="skinGrid" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ===================== QUEST MODAL ===================== -->
+<div id="questModal" class="modalOverlay">
+  <div class="modalCard">
+    <div class="modalHead">
+      <h3>📋 일일 퀘스트</h3>
+      <button class="closeX" data-close="questModal">✕</button>
+    </div>
+    <div id="questList"></div>
+    <button class="bigBtn" id="claimQuestBtn" disabled>모두 완료 시 다이아몬드 5개 받기</button>
+  </div>
+</div>
+
+<!-- ===================== SETTINGS MODAL ===================== -->
+<div id="settingsModal" class="modalOverlay">
+  <div class="modalCard">
+    <div class="modalHead">
+      <h3>⚙️ 설정</h3>
+      <button class="closeX" data-close="settingsModal">✕</button>
+    </div>
+
+    <label class="fieldLabel">닉네임</label>
+    <input type="text" id="nameInput" maxlength="12" placeholder="이름을 입력하세요">
+
+    <label class="fieldLabel">코드 입력</label>
+    <div class="redeemRow">
+      <input type="text" id="codeInput" placeholder="코드를 입력하세요">
+      <button id="codeBtn">사용</button>
+    </div>
+    <div class="errMsg" id="codeMsg"></div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px;margin-top:10px;border-top:1px solid var(--panel-line);">
+      <div>
+        <div style="font-weight:700;">📱 모바일 모드</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:4px;max-width:260px;">
+          켜면 화면 왼쪽에 동그란 ⚡ 부스트 버튼이 나타나요. 손가락으로 화면을 눌러 방향을 조종하고, 이 버튼을 누른 채로 움직이면 빠르게 갈 수 있어요.
+        </div>
+      </div>
+      <label class="toggleSwitch">
+        <input type="checkbox" id="mobileModeToggle">
+        <span class="toggleSlider"></span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<div id="eventTag" style="display:none;position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:15;background:linear-gradient(135deg,#ffd166,#ff5d73);color:#231a00;font-weight:800;font-size:13px;padding:9px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.35);pointer-events:none;">
+  🎉 다이아 이벤트 진행중! 지도에 흩뿌려진 💎를 주우세요
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="scorePanel">
+    <span>길이</span>
+    <b id="scoreVal">0</b>
+  </div>
+  <div id="playerTag">
+    <div id="playerTagName">- <span id="playerTagTier" class="tierBadge" style="font-size:10px;padding:2px 8px;"></span></div>
+    <div id="playerTagMode">-</div>
+  </div>
+</div>
+<div id="leaderboard">
+  <h4>순위</h4>
+  <div id="lbBody"></div>
+</div>
+
+<!-- DEATH -->
+<div id="deathScreen">
+  <div class="deathCard">
+    <h2>게임 오버</h2>
+    <p id="deathReason">몸통에 부딪혔습니다</p>
+    <button id="reviveBtn">💎 다이아 10개로 부활</button>
+    <button id="respawnBtn" style="margin-top:10px;background:none;border:1px solid var(--panel-line);color:var(--text-dim);">홈으로</button>
+  </div>
+</div>
+
+<div id="minimapWrap">
+  <canvas id="minimap" width="170" height="170"></canvas>
+  <div id="minimapLabel">MAP</div>
+</div>
+
+<div id="boostBtn" style="display:none;">⚡</div>
+
+<button id="devEdgeBtn" style="display:none;">‹</button>
+<div id="devModeTag" style="display:none;">
+  🛠️ 개발자 모드 (다이아 무한)
+  <button id="devExitBtn">개발자 모드 나가기</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   개발자 도구 접근 억제 (완전 차단은 불가능 — 기본적인 방해 장치)
+============================================================ */
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  const k = e.key.toUpperCase();
+  if(k === 'F12') e.preventDefault();
+  if(e.ctrlKey && e.shiftKey && (k==='I' || k==='J' || k==='C')) e.preventDefault();
+  if(e.ctrlKey && k==='U') e.preventDefault();
+});
+
+/* ============================================================
+   토스트 알림
+============================================================ */
+let toastTimer=null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 2600);
+}
+
+/* ============================================================
+   시크릿(비공개) 모드 감지
+   브라우저가 100% 확실하게 알려주는 방법은 없어서(특히 최신 크롬은 이 값을 일부러 숨김),
+   "시크릿 모드에서는 저장 공간 할당량(quota)이 비정상적으로 작게 잡힌다"는 특성을 이용한
+   추정치입니다. 100% 정확하진 않지만 대부분의 브라우저에서 잘 동작합니다.
+============================================================ */
+let isIncognito = false;
+(async function detectIncognito(){
+  try{
+    if(navigator.storage && navigator.storage.estimate){
+      const {quota} = await navigator.storage.estimate();
+      // 일반 모드는 보통 수십~수백 GB, 시크릿 모드는 대략 120MB 미만으로 잡히는 경우가 많음
+      if(quota && quota < 120000000) isIncognito = true;
+    }
+  }catch(e){ /* 감지 실패 시 그냥 일반 모드로 취급 */ }
+})();
+
+/* ============================================================
+   계정 시스템 (로컬 데모: localStorage 저장)
+   일부 브라우저의 시크릿(비공개) 모드나 개인정보 보호 확장은 localStorage 접근 자체를
+   차단(예외 발생)하기도 합니다. 그런 경우에도 로그인/회원가입이 최소한 "그 탭이 열려있는
+   동안"은 정상 동작하도록, 실패 시 메모리 저장소로 자동 전환합니다.
+============================================================ */
+const ACC_KEY = 'orbitSnakeAccounts';
+const SESSION_KEY = 'orbitSnakeSession';
+let _memoryStorage = {};
+function safeGet(key){
+  try{ return localStorage.getItem(key); }
+  catch(e){ return Object.prototype.hasOwnProperty.call(_memoryStorage,key) ? _memoryStorage[key] : null; }
+}
+function safeSet(key, val){
+  try{ localStorage.setItem(key, val); }
+  catch(e){ _memoryStorage[key] = val; }
+}
+function safeRemove(key){
+  try{ localStorage.removeItem(key); }
+  catch(e){ delete _memoryStorage[key]; }
+}
+
+function loadAccounts(){
+  try{ return JSON.parse(safeGet(ACC_KEY)) || {}; }catch(e){ return {}; }
+}
+function saveAccounts(accs){ safeSet(ACC_KEY, JSON.stringify(accs)); }
+
+function newAccountData(username){
+  return {
+    username,
+    diamonds: 0,
+    kills: 0,
+    ownedFlags: ['none'],
+    equippedFlag: 'none',
+    ownedSkins: ['none'],
+    equippedSkin: 'none',
+    redeemedCodes: [],
+    quests: null // {date, list:[{id,type,goal,progress,done}], claimed}
+  };
+}
+
+function ensureAccountFields(data){
+  if(!data.ownedSkins) data.ownedSkins = ['none'];
+  if(!data.equippedSkin) data.equippedSkin = 'none';
+  if(!data.ownedFlags) data.ownedFlags = ['none'];
+  if(!data.equippedFlag) data.equippedFlag = 'none';
+  if(!data.redeemedCodes) data.redeemedCodes = [];
+  return data;
+}
+
+let currentUser = null; // account object (persisted to localStorage on change)
+let isGuest = false;
+
+function persistCurrentUser(){
+  if(isGuest || !currentUser) return;
+  const accs = loadAccounts();
+  accs[currentUser.username].data = currentUser;
+  saveAccounts(accs);
+}
+
+function login(username, password){
+  const accs = loadAccounts();
+  const rec = accs[username];
+  if(!rec) return {ok:false, msg:'존재하지 않는 아이디입니다.'};
+  if(rec.password !== password) return {ok:false, msg:'비밀번호가 일치하지 않습니다.'};
+  currentUser = ensureAccountFields(rec.data);
+  isGuest = false;
+  safeSet(SESSION_KEY, username);
+  return {ok:true};
+}
+function register(username, password){
+  if(!username || username.length<2) return {ok:false, msg:'아이디는 2자 이상이어야 합니다.'};
+  if(!password || password.length<4) return {ok:false, msg:'비밀번호는 4자 이상이어야 합니다.'};
+  const accs = loadAccounts();
+  if(accs[username]) return {ok:false, msg:'이미 존재하는 아이디입니다.'};
+  accs[username] = { password, data: newAccountData(username) };
+  saveAccounts(accs);
+  currentUser = accs[username].data;
+  isGuest = false;
+  safeSet(SESSION_KEY, username);
+  return {ok:true};
+}
+function logout(){
+  currentUser = null;
+  isGuest = false;
+  safeRemove(SESSION_KEY);
+}
+function tryAutoLogin(){
+  const uname = safeGet(SESSION_KEY);
+  if(!uname) return false;
+  const accs = loadAccounts();
+  if(!accs[uname]) return false;
+  currentUser = ensureAccountFields(accs[uname].data);
+  isGuest = false;
+  return true;
+}
+function startGuest(){
+  isGuest = true;
+  currentUser = newAccountData('게스트');
+}
+
+/* ============================================================
+   티어 시스템 (처치 수 기준)
+============================================================ */
+const TIERS = [
+  {name:'브론즈',       min:0,   color:'#a97142'},
+  {name:'실버',         min:15,  color:'#c3cdd6'},
+  {name:'골드',         min:35,  color:'#ffd166'},
+  {name:'플래티넘',     min:60,  color:'#5fd0c8'},
+  {name:'에메랄드',     min:100, color:'#2ecc71'},
+  {name:'다이아몬드',   min:150, color:'#6ea8ff'},
+  {name:'마스터',       min:220, color:'#b86ef2'},
+  {name:'그랜드 마스터', min:300, color:'#ff5d73'},
+];
+function getTier(kills){
+  let t = TIERS[0];
+  for(const tier of TIERS){ if(kills >= tier.min) t = tier; }
+  return t;
+}
+
+/* ============================================================
+   일일 퀘스트
+============================================================ */
+const QUEST_POOL = [
+  {type:'eat',    goal:15},
+  {type:'eat',    goal:30},
+  {type:'kill',   goal:1},
+  {type:'kill',   goal:2},
+  {type:'length', goal:50},
+  {type:'length', goal:80},
+  {type:'survive',goal:90},
+  {type:'boost',  goal:8},
+];
+function questDesc(type, goal){
+  switch(type){
+    case 'eat':     return `구슬 ${goal}개 먹기`;
+    case 'kill':    return `다른 뱀 ${goal}마리 처치하기`;
+    case 'length':  return `길이 ${goal} 달성하기`;
+    case 'survive': return `${goal}초 동안 생존하기`;
+    case 'boost':   return `부스트 ${goal}번 사용하기`;
+  }
+  return '';
+}
+// 티어가 높을수록 퀘스트 목표치가 커져서 더 어려워짐 (브론즈 기준 1배 ~ 그랜드 마스터 3.8배)
+function questTierFactor(){
+  if(!currentUser) return 1;
+  const tier = getTier(currentUser.kills);
+  const idx = TIERS.findIndex(t=>t.name===tier.name);
+  return 1 + Math.max(0,idx)*0.4;
+}
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function ensureDailyQuests(){
+  if(!currentUser) return;
+  if(currentUser.quests && currentUser.quests.date === todayStr()) return;
+  const pool = [...QUEST_POOL];
+  const picked = [];
+  while(picked.length<3 && pool.length){
+    const idx = Math.floor(Math.random()*pool.length);
+    picked.push(pool.splice(idx,1)[0]);
+  }
+  const factor = questTierFactor();
+  currentUser.quests = {
+    date: todayStr(),
+    claimed:false,
+    list: picked.map((q,i)=>{
+      const goal = Math.max(q.goal, Math.round(q.goal*factor));
+      return {id:'q'+i, type:q.type, goal, desc:questDesc(q.type,goal), progress:0, done:false};
+    })
+  };
+  persistCurrentUser();
+}
+function updateQuestProgress(type, amount){
+  if(!currentUser || !currentUser.quests) return;
+  let changed=false;
+  for(const q of currentUser.quests.list){
+    if(q.type===type && !q.done){
+      q.progress = Math.min(q.goal, q.progress+amount);
+      if(q.progress>=q.goal) q.done = true;
+      changed=true;
+    }
+  }
+  if(changed){ persistCurrentUser(); renderQuestModal(); }
+}
+function setQuestProgressAbs(type, value){
+  if(!currentUser || !currentUser.quests) return;
+  let changed=false;
+  for(const q of currentUser.quests.list){
+    if(q.type===type && !q.done){
+      q.progress = Math.min(q.goal, Math.max(q.progress, value));
+      if(q.progress>=q.goal) q.done = true;
+      changed=true;
+    }
+  }
+  if(changed){ persistCurrentUser(); renderQuestModal(); }
+}
+function allQuestsDone(){
+  return currentUser && currentUser.quests && currentUser.quests.list.every(q=>q.done);
+}
+function claimDailyQuest(){
+  if(!currentUser || !currentUser.quests) return;
+  if(!allQuestsDone() || currentUser.quests.claimed) return;
+  currentUser.quests.claimed = true;
+  currentUser.diamonds += 5;
+  persistCurrentUser();
+  toast('일일 퀘스트 완료! 💎 다이아몬드 5개 획득');
+  renderProfileBar();
+  renderQuestModal();
+}
+
+/* ============================================================
+   상점 (깃발)
+============================================================ */
+const FLAGS = [
+  {id:'none',  name:'깃발 없음',    price:0,   emoji:''},
+  {id:'red',   name:'레드 페넌트',  price:20,  emoji:'🚩'},
+  {id:'gold',  name:'골드 페넌트',  price:50,  emoji:'🏅'},
+  {id:'skull', name:'스컬 플래그',  price:80,  emoji:'💀'},
+  {id:'crown', name:'크라운 플래그',price:120, emoji:'👑'},
+  {id:'star',  name:'스타 플래그',  price:150, emoji:'⭐'},
+];
+const SKINS = {
+  none:      {id:'none',      name:'기본',       price:0,   color:null,      emoji:'⚪', purchasable:true},
+  cactus:    {id:'cactus',    name:'선인장',     price:60,  color:'#3ea55c', emoji:'🌵', purchasable:true},
+  rat:       {id:'rat',       name:'쥐',         price:60,  color:'#8a7a6b', emoji:'🐀', purchasable:true},
+  skull:     {id:'skull',     name:'해골',       price:100, color:'#e8e8e0', emoji:'💀', purchasable:true},
+  snowman:   {id:'snowman',   name:'눈사람',     price:100, color:'#f2f8ff', emoji:'⛄', purchasable:true},
+  shark:     {id:'shark',     name:'상어',       price:120, color:'#7b8b9a', emoji:'🦈', purchasable:true},
+  cow:       {id:'cow',       name:'소',         price:80,  color:'#f2f2f2', emoji:'🐮', purchasable:true},
+  subway:    {id:'subway',    name:'지하철',     price:90,  color:'#4d94ff', emoji:'🚇', purchasable:true},
+  sun:       {id:'sun',       name:'태양',       price:110, color:'#ffcf40', emoji:'☀️', purchasable:true},
+  moon:      {id:'moon',      name:'달',         price:110, color:'#dfe6f0', emoji:'🌙', purchasable:true},
+  smile:     {id:'smile',     name:'스마일',     price:70,  color:'#ffd93d', emoji:'😊', purchasable:true},
+  lego:      {id:'lego',      name:'벽돌',       price:90,  color:'#ff4d4d', emoji:'🧱', purchasable:true},
+  reddragon: {id:'reddragon', name:'레드 드래곤', price:0,   color:'#ff3b30', emoji:'🐉', purchasable:false},
+};
+function buySkin(id){
+  const skin = SKINS[id];
+  if(!skin || !currentUser) return;
+  if(!skin.purchasable){ toast('이 스킨은 코드로만 얻을 수 있어요'); return; }
+  if(currentUser.ownedSkins.includes(id)) return;
+  if(!devMode && currentUser.diamonds < skin.price){ toast('다이아몬드가 부족합니다'); return; }
+  if(!devMode) currentUser.diamonds -= skin.price;
+  currentUser.ownedSkins.push(id);
+  currentUser.equippedSkin = id;
+  persistCurrentUser();
+  toast(`${skin.name} 스킨 구매 완료!`);
+  renderProfileBar();
+  renderShopModal();
+  applySkinLockToColorPicker();
+}
+function equipSkin(id){
+  if(!currentUser || !currentUser.ownedSkins.includes(id)) return;
+  currentUser.equippedSkin = id;
+  persistCurrentUser();
+  renderShopModal();
+  applySkinLockToColorPicker();
+}
+function applySkinLockToColorPicker(){
+  const row = document.getElementById('colorRow');
+  const note = document.getElementById('skinLockNote');
+  if(!currentUser) return;
+  const locked = currentUser.equippedSkin && currentUser.equippedSkin !== 'none';
+  row.style.opacity = locked ? '0.35' : '1';
+  row.style.pointerEvents = locked ? 'none' : 'auto';
+  note.style.display = locked ? 'block' : 'none';
+}
+
+// 스킨별 몸통 장식 (일부 세그먼트에만 가볍게 그려 성능 부담을 줄임)
+function drawSkinDecor(skinId, p, r){
+  ctx.save();
+  if(skinId==='cactus'){
+    ctx.strokeStyle = 'rgba(20,60,30,0.6)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(p.x-r*1.3,p.y); ctx.lineTo(p.x-r*0.5,p.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p.x+r*0.5,p.y); ctx.lineTo(p.x+r*1.3,p.y); ctx.stroke();
+  } else if(skinId==='reddragon'){
+    ctx.fillStyle = '#ffb84d';
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y-r*1.5);
+    ctx.lineTo(p.x-r*0.6, p.y-r*0.3);
+    ctx.lineTo(p.x+r*0.6, p.y-r*0.3);
+    ctx.fill();
+  } else if(skinId==='shark'){
+    // 아가미 자국 (방향에 상관없이 대칭이라 회전 불필요)
+    ctx.strokeStyle = 'rgba(20,30,40,0.4)';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.moveTo(p.x-r*0.25,p.y-r*0.4); ctx.lineTo(p.x-r*0.25,p.y+r*0.4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p.x+r*0.1,p.y-r*0.4); ctx.lineTo(p.x+r*0.1,p.y+r*0.4); ctx.stroke();
+  } else if(skinId==='cow'){
+    // 얼룩무늬 (둥근 반점이라 회전 불필요)
+    ctx.fillStyle = 'rgba(30,25,20,0.55)';
+    ctx.beginPath(); ctx.ellipse(p.x-r*0.3,p.y-r*0.15,r*0.42,r*0.3,0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(p.x+r*0.35,p.y+r*0.2,r*0.32,r*0.24,-0.4,0,Math.PI*2); ctx.fill();
+  } else if(skinId==='subway'){
+    // 창문
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillRect(p.x-r*0.5, p.y-r*0.32, r*1.0, r*0.5);
+    ctx.strokeStyle = 'rgba(30,30,30,0.45)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(p.x-r*0.5, p.y-r*0.32, r*1.0, r*0.5);
+  } else if(skinId==='moon'){
+    // 원을 살짝 베어내 초승달 모양으로 (destination-out으로 방금 그린 원의 일부를 지움)
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath(); ctx.arc(p.x+r*0.55, p.y-r*0.3, r*0.85, 0, Math.PI*2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+  } else if(skinId==='lego'){
+    // 레고 벽돌처럼 사각 테두리 + 위쪽 스터드(돌기) 두 개
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(p.x-r*0.7, p.y-r*0.5, r*1.4, r*1.0);
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.beginPath(); ctx.arc(p.x-r*0.35,p.y-r*0.5,r*0.22,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x+r*0.35,p.y-r*0.5,r*0.22,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+// 스킨별 머리 장식 (heading 기준으로 회전시켜 방향이 바뀌어도 항상 올바른 쪽을 향하게 함)
+function drawSkinHeadDecor(skinId, hp, heading){
+  ctx.save();
+  if(skinId==='cactus'){
+    ctx.fillStyle = '#2f8a4a';
+    ctx.beginPath(); ctx.moveTo(hp.x-4,hp.y-10); ctx.lineTo(hp.x,hp.y-16); ctx.lineTo(hp.x+4,hp.y-10); ctx.fill();
+  } else if(skinId==='reddragon'){
+    ctx.fillStyle = '#8a1f1f';
+    ctx.beginPath(); ctx.moveTo(hp.x-5,hp.y-8); ctx.lineTo(hp.x-7,hp.y-16); ctx.lineTo(hp.x-2,hp.y-9); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(hp.x+5,hp.y-8); ctx.lineTo(hp.x+7,hp.y-16); ctx.lineTo(hp.x+2,hp.y-9); ctx.fill();
+  } else if(skinId==='shark'){
+    ctx.translate(hp.x,hp.y); ctx.rotate(heading);
+    ctx.fillStyle = '#5f707f';
+    ctx.beginPath(); ctx.moveTo(-4,-8); ctx.lineTo(1,-19); ctx.lineTo(6,-7); ctx.closePath(); ctx.fill(); // 등지느러미
+  } else if(skinId==='cow'){
+    ctx.translate(hp.x,hp.y); ctx.rotate(heading);
+    ctx.fillStyle = '#3a2a20';
+    ctx.beginPath(); ctx.ellipse(10,0,3,2,0,0,Math.PI*2); ctx.fill(); // 코
+    ctx.fillStyle = 'rgba(30,25,20,0.6)';
+    ctx.beginPath(); ctx.arc(-3,-7,3,0,Math.PI*2); ctx.fill(); // 무늬
+  } else if(skinId==='subway'){
+    ctx.translate(hp.x,hp.y); ctx.rotate(heading);
+    ctx.fillStyle = '#fff59d';
+    ctx.beginPath(); ctx.arc(10,0,2.6,0,Math.PI*2); ctx.fill(); // 전조등
+  } else if(skinId==='moon'){
+    // 머리도 몸통과 같은 방식으로 초승달 모양이 되도록 베어냄 (heading 기준 회전)
+    ctx.translate(hp.x,hp.y); ctx.rotate(heading);
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath(); ctx.arc(7, -4, 10, 0, Math.PI*2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+  } else if(skinId==='smile'){
+    ctx.translate(hp.x,hp.y); ctx.rotate(heading);
+    ctx.strokeStyle = '#2a1a00';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    // 웃는 눈 (^ 모양 곡선 두 개)
+    ctx.beginPath(); ctx.moveTo(1,-6); ctx.quadraticCurveTo(4,-9,7,-6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1,6); ctx.quadraticCurveTo(4,9,7,6); ctx.stroke();
+    // 웃는 입
+    ctx.beginPath(); ctx.moveTo(7,-2); ctx.quadraticCurveTo(12,2,7,6); ctx.stroke();
+  } else if(skinId==='lego'){
+    // 머리 위 스터드(돌기) - 화면상 항상 위쪽에 있는 게 자연스러워 회전 불필요
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.arc(hp.x,hp.y-9,3.2,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+function buyFlag(id){
+  const flag = FLAGS.find(f=>f.id===id);
+  if(!flag || !currentUser) return;
+  if(currentUser.ownedFlags.includes(id)) return;
+  if(!devMode && currentUser.diamonds < flag.price){ toast('다이아몬드가 부족합니다'); return; }
+  if(!devMode) currentUser.diamonds -= flag.price;
+  currentUser.ownedFlags.push(id);
+  currentUser.equippedFlag = id;
+  persistCurrentUser();
+  toast(`${flag.name} 구매 완료!`);
+  renderProfileBar();
+  renderShopModal();
+}
+function equipFlag(id){
+  if(!currentUser || !currentUser.ownedFlags.includes(id)) return;
+  currentUser.equippedFlag = id;
+  persistCurrentUser();
+  renderShopModal();
+}
+
+/* ============================================================
+   코드 입력
+============================================================ */
+function redeemCode(raw){
+  const code = raw.trim().toLowerCase().replace(/\s+/g,' ');
+  const msgEl = document.getElementById('codeMsg');
+  if(!currentUser || isGuest){ msgEl.textContent = '로그인 후 사용할 수 있어요. (게스트 기록은 저장되지 않아요)'; return; }
+
+  if(code === 'very big snake' || code === '매우 큰 뱀'){
+    if(currentUser.redeemedCodes.includes('verybigsnake')){
+      msgEl.textContent = '이미 사용한 코드입니다.';
+      return;
+    }
+    currentUser.redeemedCodes.push('verybigsnake');
+    currentUser.diamonds += 100;
+    persistCurrentUser();
+    msgEl.style.color = 'var(--accent)';
+    msgEl.textContent = '💎 다이아몬드 100개를 받았습니다!';
+    toast('코드 사용 성공! 💎 +100');
+    renderProfileBar();
+  } else if(code === 'red dragon' || code === '레드 드래곤'){
+    if(currentUser.redeemedCodes.includes('reddragon')){
+      msgEl.textContent = '이미 사용한 코드입니다.';
+      return;
+    }
+    currentUser.redeemedCodes.push('reddragon');
+    currentUser.ownedSkins.push('reddragon');
+    currentUser.equippedSkin = 'reddragon';
+    persistCurrentUser();
+    msgEl.style.color = 'var(--accent)';
+    msgEl.textContent = '🐉 레드 드래곤 스킨을 획득했습니다!';
+    toast('코드 사용 성공! 🐉 레드 드래곤 스킨 획득');
+    renderProfileBar();
+    renderShopModal();
+    applySkinLockToColorPicker();
+  } else {
+    msgEl.style.color = 'var(--accent-2)';
+    msgEl.textContent = '유효하지 않은 코드입니다.';
+  }
+}
+
+/* ============================================================
+   UI 렌더링 (프로필 / 상점 / 퀘스트)
+============================================================ */
+function renderProfileBar(){
+  if(!currentUser) return;
+  const tier = getTier(currentUser.kills);
+  document.getElementById('pbName').textContent = isGuest ? '게스트' : currentUser.username;
+  document.getElementById('pbKills').textContent = currentUser.kills;
+  const tierBadge = document.getElementById('pbTier');
+  tierBadge.textContent = tier.name;
+  tierBadge.style.background = tier.color + '22';
+  tierBadge.style.color = tier.color;
+  document.getElementById('pbDiamonds').textContent = devMode ? '∞' : currentUser.diamonds;
+  document.getElementById('shopDiamonds').textContent = devMode ? '∞' : currentUser.diamonds;
+
+  const badge = document.getElementById('questBadge');
+  if(allQuestsDone() && currentUser.quests && !currentUser.quests.claimed){
+    badge.textContent = '🎁';
+  } else {
+    badge.textContent = '';
+  }
+}
+function renderShopModal(){
+  const grid = document.getElementById('flagGrid');
+  grid.innerHTML = FLAGS.map(f=>{
+    const owned = currentUser.ownedFlags.includes(f.id);
+    const equipped = currentUser.equippedFlag === f.id;
+    let btnLabel, btnClass;
+    if(f.id==='none'){
+      btnLabel = equipped ? '장착됨' : '장착하기';
+      btnClass = equipped ? 'equipped' : '';
+    } else if(equipped){
+      btnLabel = '장착됨'; btnClass='equipped';
+    } else if(owned){
+      btnLabel = '장착하기'; btnClass='owned';
+    } else {
+      btnLabel = `구매 ${f.price}💎`; btnClass='';
+    }
+    return `<div class="flagItem">
+      <div class="flagPreview">${f.emoji || '—'}</div>
+      <div class="flagName">${f.name}</div>
+      <div class="flagPrice">${f.price>0? f.price+' 💎' : '무료'}</div>
+      <button class="${btnClass}" data-flag="${f.id}" data-owned="${owned}">${btnLabel}</button>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.flag;
+      const owned = btn.dataset.owned === 'true';
+      if(owned || id==='none') equipFlag(id);
+      else buyFlag(id);
+    });
+  });
+
+  const skinGrid = document.getElementById('skinGrid');
+  skinGrid.innerHTML = Object.values(SKINS).map(sk=>{
+    const owned = currentUser.ownedSkins.includes(sk.id);
+    const equipped = currentUser.equippedSkin === sk.id;
+    let btnLabel, btnClass, disabled=false;
+    if(sk.id==='none'){
+      btnLabel = equipped ? '장착됨' : '장착하기';
+      btnClass = equipped ? 'equipped' : '';
+    } else if(equipped){
+      btnLabel = '장착됨'; btnClass='equipped';
+    } else if(owned){
+      btnLabel = '장착하기'; btnClass='owned';
+    } else if(!sk.purchasable){
+      btnLabel = '🔒 코드 전용'; btnClass='owned'; disabled=true;
+    } else {
+      btnLabel = `구매 ${sk.price}💎`; btnClass='';
+    }
+    return `<div class="flagItem">
+      <div class="flagPreview">${sk.emoji}</div>
+      <div class="flagName">${sk.name}</div>
+      <div class="flagPrice">${!sk.purchasable && !owned ? '코드로만 획득' : (sk.price>0? sk.price+' 💎' : '무료')}</div>
+      <button class="${btnClass}" data-skin="${sk.id}" data-owned="${owned}" ${disabled?'disabled':''}>${btnLabel}</button>
+    </div>`;
+  }).join('');
+  skinGrid.querySelectorAll('button:not([disabled])').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.skin;
+      const owned = btn.dataset.owned === 'true';
+      if(owned || id==='none') equipSkin(id);
+      else buySkin(id);
+    });
+  });
+}
+function renderQuestModal(){
+  if(!currentUser || !currentUser.quests) return;
+  const list = document.getElementById('questList');
+  list.innerHTML = currentUser.quests.list.map(q=>{
+    const pct = Math.min(100, Math.round(q.progress/q.goal*100));
+    return `<div class="questItem">
+      <div class="questTop">
+        <span>${q.desc}</span>
+        <span class="${q.done?'questDone':''}">${q.progress}/${q.goal} ${q.done?'✓':''}</span>
+      </div>
+      <div class="questBarBg"><div class="questBarFill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+  const claimBtn = document.getElementById('claimQuestBtn');
+  const done = allQuestsDone();
+  claimBtn.disabled = !done || currentUser.quests.claimed;
+  claimBtn.textContent = currentUser.quests.claimed
+    ? '오늘 보상을 이미 받았습니다'
+    : (done ? '💎 다이아몬드 5개 받기' : '모든 퀘스트를 완료하면 다이아몬드 5개 지급');
+}
+
+/* ============================================================
+   기본 게임 설정
+============================================================ */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+resize(); addEventListener('resize', resize);
+
+const WORLD_SIZE = 4000;
+const WORLD_CENTER = WORLD_SIZE/2;
+const WORLD_RADIUS = WORLD_SIZE/2 - 40; // 원형 맵의 실제 플레이 가능 반지름
+const RIVER_WIDTH = 260;                // 가장자리 강의 폭
+const RIVER_INNER_R = WORLD_RADIUS - RIVER_WIDTH; // 이 반지름보다 바깥이면 강
+const RIVER_SPEED_MULT = 1.18;          // 강에 들어가면 속도가 살짝 빨라짐
+
+// 원형 맵 안에서 균등하게 분포하는 랜덤 좌표 (margin만큼 테두리에서 안쪽으로)
+function randomPointInCircle(margin){
+  const maxR = Math.max(10, WORLD_RADIUS - margin);
+  const r = Math.sqrt(Math.random()) * maxR;
+  const a = Math.random() * Math.PI * 2;
+  return { x: WORLD_CENTER + Math.cos(a)*r, y: WORLD_CENTER + Math.sin(a)*r };
+}
+// 원형 경계 밖으로 나가지 않도록 좌표를 원 안으로 밀어넣음
+function clampToCircle(x, y, maxR){
+  const dx = x - WORLD_CENTER, dy = y - WORLD_CENTER;
+  const d = Math.hypot(dx,dy);
+  if(d <= maxR || d === 0) return {x, y};
+  const s = maxR/d;
+  return { x: WORLD_CENTER + dx*s, y: WORLD_CENTER + dy*s };
+}
+function distFromCenter(x,y){ return Math.hypot(x-WORLD_CENTER, y-WORLD_CENTER); }
+function isInRiver(x,y){ const d = distFromCenter(x,y); return d > RIVER_INNER_R && d <= WORLD_RADIUS; }
+const SEG_SPACING = 13;
+const BASE_SPEED = 2.6;
+const BOOST_SPEED = 5.2;
+const TURN_RATE = 0.14;
+const START_LEN = 20;
+const ORB_COUNT = 170;
+const AI_COUNT = 5;
+
+let mouse = {x: innerWidth/2, y: innerHeight/2, down:false};
+canvas.addEventListener('mousemove', e=>{ mouse.x = e.clientX; mouse.y = e.clientY; });
+canvas.addEventListener('mousedown', ()=> mouse.down = true);
+canvas.addEventListener('mouseup', ()=> mouse.down = false);
+canvas.addEventListener('mouseleave', ()=> mouse.down = false);
+
+// 모바일 모드: 설정에서 켜면 화면 왼쪽에 별도의 ⚡ 부스트 버튼이 뜨고,
+// 터치는 방향 조종 전용, 부스트는 그 버튼을 누르고 있을 때만 동작함
+let mobileMode = safeGet('orbitSnakeMobileMode') === '1';
+let devMode = false; // 맵 왼쪽 벽에 붙었을 때 나타나는 버튼으로 켤 수 있는 개발자 모드 (다이아 무한)
+let boostButtonHeld = false;
+function isBoosting(){ return mobileMode ? boostButtonHeld : mouse.down; }
+
+// 손가락이 있는 방향으로 이동. targetTouches를 사용해 캔버스에서 시작된 터치만 인식하므로
+// 부스트 버튼을 다른 손가락으로 동시에 눌러도 조종 방향이 엉키지 않음
+function handleTouch(e){
+  if(e.targetTouches.length === 0) return;
+  const t = e.targetTouches[0];
+  mouse.x = t.clientX;
+  mouse.y = t.clientY;
+}
+canvas.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  if(!mobileMode) mouse.down = true; // 모바일 모드가 아니면 기존처럼 터치=부스트
+  handleTouch(e);
+}, {passive:false});
+canvas.addEventListener('touchmove', e=>{
+  e.preventDefault();
+  handleTouch(e);
+}, {passive:false});
+canvas.addEventListener('touchend', e=>{
+  e.preventDefault();
+  if(!mobileMode) mouse.down = false;
+}, {passive:false});
+canvas.addEventListener('touchcancel', e=>{
+  if(!mobileMode) mouse.down = false;
+}, {passive:false});
+
+// 부스트 버튼: 터치와 마우스 둘 다 지원 (데스크톱 테스트도 가능하도록)
+const boostBtnEl = document.getElementById('boostBtn');
+function setBoostHeld(held){
+  boostButtonHeld = held;
+  boostBtnEl.classList.toggle('pressed', held);
+}
+boostBtnEl.addEventListener('touchstart', e=>{ e.preventDefault(); setBoostHeld(true); }, {passive:false});
+boostBtnEl.addEventListener('touchend', e=>{ e.preventDefault(); setBoostHeld(false); }, {passive:false});
+boostBtnEl.addEventListener('touchcancel', ()=> setBoostHeld(false));
+boostBtnEl.addEventListener('mousedown', ()=> setBoostHeld(true));
+addEventListener('mouseup', ()=> setBoostHeld(false));
+
+// 개발자 모드: 맵 왼쪽 벽에 붙으면 나타나는 버튼으로 켜고, 전용 버튼으로 끔 (다이아몬드 무한)
+const devEdgeBtn = document.getElementById('devEdgeBtn');
+const devModeTag = document.getElementById('devModeTag');
+devEdgeBtn.addEventListener('click', ()=>{
+  devMode = true;
+  devEdgeBtn.style.display = 'none';
+  devModeTag.style.display = 'flex';
+  // 개발자 모드를 켜면 티어가 그랜드 마스터가 되고, 이 부분은 개발자 모드를 꺼도 유지됨
+  if(currentUser && currentUser.kills < 300){
+    currentUser.kills = 300;
+    persistCurrentUser();
+    updatePlayerTagTier();
+  }
+  toast('🛠️ 개발자 모드가 켜졌습니다! 다이아몬드 무한 + 티어 그랜드 마스터');
+  renderProfileBar();
+});
+document.getElementById('devExitBtn').addEventListener('click', ()=>{
+  devMode = false;
+  devModeTag.style.display = 'none';
+  toast('개발자 모드를 나갔습니다 (그랜드 마스터 티어는 유지돼요)');
+  renderProfileBar();
+});
+
+let orbs = [];
+let snakes = [];
+let player = null;
+let running = false;
+let mode = 'ai';
+let camera = {x:0,y:0};
+let sessionStart = 0;
+let wasBoosting = false;
+
+function rand(a,b){ return a + Math.random()*(b-a); }
+function dist2(x1,y1,x2,y2){ const dx=x1-x2, dy=y1-y2; return dx*dx+dy*dy; }
+function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+
+// 시간 기반으로 모두에게 동일한 결과를 주는 결정론적 랜덤(시드 기반) — 맵 순환/상점 재고 등에 사용
+function mulberry32(seed){
+  let t = seed >>> 0;
+  return function(){
+    t = (t + 0x6D2B79F5) | 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function strHash(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i)) | 0; }
+  return h >>> 0;
+}
+function angleLerp(a,b,t){
+  let diff = ((b-a+Math.PI*3)%(Math.PI*2)) - Math.PI;
+  return a + diff*t;
+}
+function randomColor(){
+  const palette = THEMES[currentThemeKey].orbPalette;
+  return palette[Math.floor(Math.random()*palette.length)];
+}
+
+/* ============================================================
+   매주 토요일 13:00~14:00 (KST) 다이아 이벤트
+============================================================ */
+function getKstNow(){
+  return new Date(new Date().toLocaleString('en-US', {timeZone:'Asia/Seoul'}));
+}
+function isEventLive(){
+  const kst = getKstNow();
+  return kst.getDay() === 6 && kst.getHours() === 13 && kst.getMinutes() < 30; // 토요일 13:00 ~ 13:30 (KST, 30분간)
+}
+
+let eventActive = false;
+let eventDiamonds = []; // {x,y,r,glow}
+let eventCheckInterval = null;
+
+function spawnEventDiamonds(){
+  const count = Math.floor(rand(20, 31)); // 20~30개 랜덤
+  eventDiamonds = [];
+  for(let i=0;i<count;i++){
+    const p = randomPointInCircle(80);
+    eventDiamonds.push({
+      x: p.x,
+      y: p.y,
+      r: 11,
+      glow: rand(0, Math.PI*2)
+    });
+  }
+}
+function checkEventStatus(){
+  const live = isEventLive();
+  const tag = document.getElementById('eventTag');
+  if(live && !eventActive){
+    eventActive = true;
+    spawnEventDiamonds();
+    if(tag) tag.style.display = 'block';
+    toast('🎉 다이아 이벤트 시작! 지도에 다이아가 흩뿌려졌어요!');
+  } else if(!live && eventActive){
+    eventActive = false;
+    eventDiamonds = [];
+    if(tag) tag.style.display = 'none';
+    toast('이벤트가 종료되었습니다. 다음 주 토요일 13시에 만나요!');
+  }
+}
+function pickupEventDiamonds(){
+  if(!eventActive || !player || !player.alive || eventDiamonds.length===0) return;
+  const head = player.segs[0];
+  for(let i=eventDiamonds.length-1;i>=0;i--){
+    const ed = eventDiamonds[i];
+    if(dist2(head.x,head.y,ed.x,ed.y) < (14+ed.r)*(14+ed.r)){
+      eventDiamonds.splice(i,1);
+      if(currentUser){
+        currentUser.diamonds += 1;
+        persistCurrentUser();
+        renderProfileBar();
+      }
+    }
+  }
+}
+function drawEventDiamond(ed){
+  const px = ed.x - camera.x + canvas.width/2;
+  const py = ed.y - camera.y + canvas.height/2;
+  if(px<-30||px>canvas.width+30||py<-30||py>canvas.height+30) return;
+  ed.glow += 0.06;
+  const pulse = 1 + Math.sin(ed.glow)*0.18;
+  const r = ed.r*pulse;
+  ctx.save();
+  ctx.translate(px,py);
+  ctx.rotate(Math.PI/4);
+  ctx.fillStyle = '#ffd166';
+  ctx.fillRect(-r*0.6,-r*0.6,r*1.2,r*1.2);
+  ctx.strokeStyle = '#fff6d8';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(-r*0.6,-r*0.6,r*1.2,r*1.2);
+  ctx.restore();
+}
+
+/* ============================================================
+   맵 테마 (5분마다 랜덤으로 일반/사막/사탕 순환, 뱀 상태는 유지)
+============================================================ */
+const THEMES = {
+  normal: {
+    name:'일반', bg:'#070b12',
+    grid:'rgba(94,242,192,0.05)', border:'rgba(255,93,115,0.5)',
+    orbPalette:['#5ef2c0','#ff5d73','#ffd166','#6ea8ff','#c77dff','#ff9f6e','#7bffb0']
+  },
+  desert: {
+    name:'사막', bg:'#241a0d',
+    grid:'rgba(255,193,110,0.09)', border:'rgba(255,193,110,0.55)',
+    orbPalette:['#ffcf6e','#ff9f43','#e8b34f','#c97b2e','#ffe29a']
+  },
+  candy: {
+    name:'사탕', bg:'#22111f',
+    grid:'rgba(255,150,220,0.09)', border:'rgba(255,150,220,0.55)',
+    orbPalette:['#ff8fd8','#ff5da2','#c77dff','#8ce8ff','#fff27a']
+  }
+};
+const THEME_ORDER = ['normal','desert','candy'];
+let currentThemeKey = 'normal';
+let themeInterval = null;
+const THEME_ROTATE_MS = 5 * 60 * 1000; // 5분
+
+// 현재 시각을 기준으로 모든 접속자(그리고 홈페이지)가 동일한 맵을 보도록 시간 구간별로 결정
+function themeWindowIndex(){ return Math.floor(Date.now() / THEME_ROTATE_MS); }
+function getScheduledThemeKey(){
+  const idx = themeWindowIndex();
+  const rnd = mulberry32(strHash('theme_' + idx))();
+  return THEME_ORDER[Math.floor(rnd * THEME_ORDER.length)];
+}
+function msUntilNextTheme(){ return THEME_ROTATE_MS - (Date.now() % THEME_ROTATE_MS); }
+
+function rotateTheme(){
+  const next = getScheduledThemeKey();
+  if(next !== currentThemeKey){
+    currentThemeKey = next;
+    toast(`🗺️ 맵이 "${THEMES[currentThemeKey].name}" 테마로 바뀌었습니다!`);
+  }
+}
+function startThemeCycle(){
+  currentThemeKey = getScheduledThemeKey();
+  clearInterval(themeInterval);
+  themeInterval = setInterval(rotateTheme, 1000); // 1초마다 확인해서 정확한 시각에 전환
+}
+
+function spawnOrb(x,y,color,value){
+  const p = (x===undefined) ? randomPointInCircle(40) : {x,y};
+  return {
+    x: p.x,
+    y: p.y,
+    r: value? clamp(3+value*0.4,3,9) : rand(3,5),
+    color: color || randomColor(),
+    glow: rand(0,Math.PI*2)
+  };
+}
+function ensureOrbCount(){ while(orbs.length < ORB_COUNT) orbs.push(spawnOrb()); }
+
+/* ============================================================
+   개구리 (지도에 항상 10마리 이상 존재)
+   먹으면: 40% 확률로 👑 왕관, 50% 확률로 💎 다이아 1개, 10% 확률로 꽝
+============================================================ */
+const FROG_COUNT = 12;
+let frogs = [];
+function spawnFrog(){
+  const p = randomPointInCircle(60);
+  const x = p.x, y = p.y;
+  return {
+    x, y, r: 10,
+    fromX:x, fromY:y, toX:x, toY:y,
+    jumpT: 1, jumpDur: 420, jumpStart: 0,
+    nextJumpAt: Date.now() + rand(500, 2000),
+    facing: 0
+  };
+}
+function ensureFrogCount(){ while(frogs.length < FROG_COUNT) frogs.push(spawnFrog()); }
+// 개구리가 주기적으로 근처 임의의 방향으로 점프해서 돌아다니게 함
+function updateFrog(f){
+  const now = Date.now();
+  if(f.jumpT < 1){
+    f.jumpT = clamp((now - f.jumpStart) / f.jumpDur, 0, 1);
+    const e = f.jumpT;
+    f.x = f.fromX + (f.toX - f.fromX) * e;
+    f.y = f.fromY + (f.toY - f.fromY) * e;
+    if(f.jumpT >= 1) f.nextJumpAt = now + rand(600, 2200);
+  } else if(now >= f.nextJumpAt){
+    const ang = rand(0, Math.PI*2);
+    const dist = rand(50, 130);
+    f.fromX = f.x; f.fromY = f.y;
+    const target = clampToCircle(f.x + Math.cos(ang)*dist, f.y + Math.sin(ang)*dist, WORLD_RADIUS-50);
+    f.toX = target.x;
+    f.toY = target.y;
+    f.facing = ang;
+    f.jumpStart = now;
+    f.jumpT = 0;
+  }
+}
+function eatFrogs(s){
+  const head = s.segs[0];
+  for(let i=frogs.length-1;i>=0;i--){
+    const f = frogs[i];
+    if(dist2(head.x,head.y,f.x,f.y) < (15+f.r)*(15+f.r)){
+      frogs.splice(i,1);
+      s.growPending += 3;
+      const roll = Math.random();
+      if(roll < 0.4){
+        s.crowns = (s.crowns||0) + 1;
+        if(s.isPlayer) toast('🐸 개구리를 먹고 👑 왕관을 얻었습니다!');
+      } else if(roll < 0.9){
+        if(s.isPlayer && currentUser){
+          currentUser.diamonds += 1;
+          persistCurrentUser();
+          renderProfileBar();
+        }
+        if(s.isPlayer) toast('🐸 개구리를 먹고 💎 다이아몬드 1개를 얻었습니다!');
+      } else {
+        if(s.isPlayer) toast('🐸 개구리를 먹었지만 아무것도 없었어요');
+      }
+    }
+  }
+}
+function drawFrog(f){
+  const px = f.x - camera.x + canvas.width/2;
+  const py = f.y - camera.y + canvas.height/2;
+  if(px<-30||px>canvas.width+30||py<-30||py>canvas.height+30) return;
+  // 점프 중일 때만 포물선으로 살짝 튀어오르게 함 (착지해있을 땐 제자리)
+  const hop = Math.sin(f.jumpT*Math.PI) * 14;
+  ctx.save();
+  ctx.font = '22px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🐸', px, py - hop);
+  ctx.restore();
+}
+
+
+/* 죽은 뱀의 왕관을 처치자에게 넘겨줌 */
+function transferCrowns(killerSnake, crownsWon){
+  if(!killerSnake || crownsWon<=0) return;
+  killerSnake.crowns = (killerSnake.crowns||0) + crownsWon;
+}
+function dropDeathOrbs(snake){
+  // 뱀이 아주 길 때(1000+) 한 번에 수백 개의 구슬이 쏟아지면 렉 스파이크가 생기므로 최대 개수를 제한
+  const MAX_DEATH_ORBS = 70;
+  const total = snake.segs.length;
+  const step = Math.max(2, Math.ceil(total / MAX_DEATH_ORBS));
+  const dropped = [];
+  for(let i=0;i<total;i+=step){
+    const s = snake.segs[i];
+    const o = spawnOrb(s.x+rand(-8,8), s.y+rand(-8,8), snake.color, 6);
+    orbs.push(o);
+    dropped.push(o);
+  }
+  // 온라인 모드에서는 내가 죽었을 때 남긴 구슬이 상대방 화면에도 같은 자리에 나타나도록 알려줌
+  if(mode==='online' && bc && snake.isPlayer){
+    bc.postMessage({type:'deathOrbs', orbs: dropped.map(o=>({x:o.x, y:o.y, color:o.color}))});
+  }
+}
+
+function makeSnake({name,color,isPlayer=false,isAI=false,x,y,skinId='none'}){
+  let startX, startY;
+  if(x!==undefined){ startX = x; startY = y; }
+  else { const p = randomPointInCircle(300); startX = p.x; startY = p.y; }
+  const segs = [];
+  for(let i=0;i<START_LEN;i++) segs.push({x:startX - i*SEG_SPACING, y:startY});
+  return {
+    id: Math.random().toString(36).slice(2),
+    name, color, isPlayer, isAI, skinId,
+    segs, heading:0, speed:BASE_SPEED, boosting:false, alive:true,
+    growPending:0, aiTarget:null, crowns:0, friendIds:new Set(),
+    beadLight: shadeColor(color, 18),
+    beadDark: shadeColor(color, -22)
+  };
+}
+function snakeLength(s){ return s.segs.length; }
+
+function moveSnake(s, targetAngle, boosting){
+  s.heading = angleLerp(s.heading, targetAngle, TURN_RATE);
+  s.boosting = boosting && snakeLength(s) > START_LEN+4;
+  const head = s.segs[0];
+  const riverMult = isInRiver(head.x, head.y) ? RIVER_SPEED_MULT : 1;
+  s.speed = (s.boosting ? BOOST_SPEED : BASE_SPEED) * riverMult;
+
+  let nx = head.x + Math.cos(s.heading)*s.speed;
+  let ny = head.y + Math.sin(s.heading)*s.speed;
+  const clamped = clampToCircle(nx, ny, WORLD_RADIUS-10);
+  nx = clamped.x; ny = clamped.y;
+  s.segs.unshift({x:nx, y:ny});
+
+  // growPending 만큼 늘리고, 아니면 꼬리 제거 (부스트해도 길이는 줄지 않음)
+  if(s.growPending > 0){ s.growPending--; }
+  else { s.segs.pop(); }
+}
+
+/* ============================================================
+   충돌 판정용 공간 해시 그리드
+   - 뱀이 아주 길어지면(길이 1000+) 매 프레임 모든 세그먼트를 서로 비교하는 방식은
+     연산량이 폭발적으로 늘어나 렉이 심해짐.
+   - 화면을 일정 크기 칸(cell)으로 나눠 세그먼트를 칸별로 미리 분류해두고,
+     머리 주변 3x3칸에 있는 세그먼트만 검사하도록 바꿔서 길이가 얼마든 빠르게 유지.
+============================================================ */
+const COLLISION_CELL = 40;
+let collisionGrid = new Map();
+
+// 뱀이 길어질수록 세그먼트 수가 많아져 렉이 심해지므로, 충돌 판정에는 몸통 점을
+// COLLISION_STRIDE 간격으로 건너뛰며 등록함(충돌 판정 반지름보다 간격이 훨씬 좁아 빈틈은 안 생김)
+const COLLISION_STRIDE = 3;
+function insertIntoGrid(segs, ref){
+  for(let i=0;i<segs.length;i+=COLLISION_STRIDE){
+    const seg = segs[i];
+    const key = (Math.floor(seg.x/COLLISION_CELL)) + '_' + (Math.floor(seg.y/COLLISION_CELL));
+    let bucket = collisionGrid.get(key);
+    if(!bucket){ bucket = []; collisionGrid.set(key, bucket); }
+    bucket.push(seg.x, seg.y, ref);
+  }
+}
+function buildCollisionGrid(){
+  collisionGrid.clear();
+  for(const s of snakes){
+    if(!s.alive) continue;
+    insertIntoGrid(s.segs, s);
+  }
+  // 온라인 모드에서만 원격 플레이어와 실제 충돌이 적용됨
+  if(mode==='online'){
+    for(const id in remoteSnakes){
+      const r = remoteSnakes[id];
+      if(!r.alive || !r.segs) continue;
+      insertIntoGrid(r.segs, {id:'remote_'+id, name:r.name, isPlayer:false, isRemote:true});
+    }
+  }
+}
+function isFriendOf(s, ref){
+  if(!s.friendIds || s.friendIds.size===0) return false;
+  const targetId = ref.isRemote ? ref.id.replace('remote_','') : ref.id;
+  return s.friendIds.has(targetId);
+}
+function checkCollisionGrid(s){
+  const head = s.segs[0];
+  const hr2 = 12*12;
+  const cx = Math.floor(head.x/COLLISION_CELL), cy = Math.floor(head.y/COLLISION_CELL);
+  for(let dx=-1;dx<=1;dx++){
+    for(let dy=-1;dy<=1;dy++){
+      const bucket = collisionGrid.get((cx+dx)+'_'+(cy+dy));
+      if(!bucket) continue;
+      for(let k=0;k<bucket.length;k+=3){
+        const ref = bucket[k+2];
+        if(ref.id === s.id) continue;
+        if(isFriendOf(s, ref)) continue; // 친구끼리는 부딪혀도 죽지 않음
+        const dx2 = head.x-bucket[k], dy2 = head.y-bucket[k+1];
+        if(dx2*dx2+dy2*dy2 < hr2) return ref;
+      }
+    }
+  }
+  return null;
+}
+
+function eatOrbs(s){
+  const head = s.segs[0];
+  let eatenCount = 0;
+  for(let i=orbs.length-1;i>=0;i--){
+    const o = orbs[i];
+    if(dist2(head.x,head.y,o.x,o.y) < (15+o.r)*(15+o.r)){
+      orbs.splice(i,1);
+      s.growPending += Math.max(1, Math.round(o.r));
+      eatenCount++;
+    }
+  }
+  if(eatenCount>0 && s.isPlayer) updateQuestProgress('eat', eatenCount);
+}
+
+function aiThink(s){
+  const head = s.segs[0];
+  if(!s.aiTarget || Math.random()<0.02 || dist2(head.x,head.y,s.aiTarget.x,s.aiTarget.y) < 400){
+    // 근처(700px 이내)에 개구리가 있으면 왕관/다이아를 노리기 위해 우선적으로 향함
+    let bestFrog=null, bfd=Infinity;
+    for(let idx=0; idx<frogs.length; idx++){
+      const f = frogs[idx];
+      const d = dist2(head.x,head.y,f.x,f.y);
+      if(d < bfd){ bfd=d; bestFrog=f; }
+    }
+    if(bestFrog && bfd < 700*700){
+      s.aiTarget = bestFrog;
+    } else {
+      // 성능을 위해 전체 먹이를 다 훑지 않고 3개 중 1개꼴로 샘플링해서 탐색
+      let best=null, bd=Infinity;
+      for(let idx=0; idx<orbs.length; idx+=3){
+        const o = orbs[idx];
+        const d = dist2(head.x,head.y,o.x,o.y);
+        if(d < bd){ bd=d; best=o; }
+      }
+      s.aiTarget = best;
+    }
+  }
+  let desiredAngle = s.heading;
+  if(s.aiTarget) desiredAngle = Math.atan2(s.aiTarget.y-head.y, s.aiTarget.x-head.x);
+
+  // 원형 맵 가장자리에 가까워지면 중심 쪽으로 방향을 트는 회피 로직
+  const distC = distFromCenter(head.x, head.y);
+  if(distC > WORLD_RADIUS - 200){
+    desiredAngle = Math.atan2(WORLD_CENTER-head.y, WORLD_CENTER-head.x);
+  }
+
+  for(const other of snakes){
+    if(other.id===s.id || !other.alive) continue;
+    const oh = other.segs[0];
+    if(dist2(head.x,head.y,oh.x,oh.y) < 130*130){
+      desiredAngle = Math.atan2(head.y-oh.y, head.x-oh.x);
+      break;
+    }
+  }
+  moveSnake(s, desiredAngle, Math.random()<0.01);
+}
+
+/* ============================================================
+   온라인 (로컬 BroadcastChannel)
+============================================================ */
+let bc = null;
+let remoteSnakes = {};
+let onlineBroadcastInterval = null;
+/* ============================================================
+   실제 온라인 연결 (PeerJS/WebRTC) - 다른 컴퓨터끼리도 접속 가능
+   BroadcastChannel과 동일한 postMessage/onmessage 인터페이스를 흉내내는
+   래퍼라서, 아래쪽의 나머지 온라인 로직은 그대로 재사용됨.
+   방식: 방 이름으로 고정된 ID를 먼저 선점하는 사람이 "방장"이 되어 모두를 중계하고,
+   이미 선점되어 있으면 그 방장에게 접속하는 "손님"이 됨 (서버 없이 P2P로 연결).
+============================================================ */
+class PeerRelay{
+  constructor(roomName){
+    this.onmessage = null;
+    this.isHost = false;
+    this.peer = null;
+    this.conns = [];
+    this.ready = false;
+    this.queue = [];
+    this.onPeerCountChange = null;
+    this._connect(roomName);
+  }
+  _emit(data){ if(this.onmessage) this.onmessage({data}); }
+  _notifyCount(){ if(this.onPeerCountChange) this.onPeerCountChange(this.conns.length); }
+  _connect(roomName){
+    if(typeof Peer === 'undefined'){
+      toast('⚠️ 온라인 연결 라이브러리를 불러오지 못했어요. 새로고침하거나 다른 브라우저로 시도해보세요');
+      return;
+    }
+    const hostId = 'orbitsnake-room-' + roomName;
+    const hostPeer = new Peer(hostId, {debug:0});
+    hostPeer.on('open', ()=>{
+      this.isHost = true;
+      this.peer = hostPeer;
+      this.ready = true;
+      this._flush();
+    });
+    hostPeer.on('connection', (conn)=>{
+      this.conns.push(conn);
+      this._notifyCount();
+      conn.on('data', (data)=>{
+        this._emit(data);
+        // 호스트는 받은 메시지를 자신을 제외한 다른 모든 손님에게 중계함
+        for(const c of this.conns){ if(c!==conn && c.open) c.send(data); }
+      });
+      conn.on('close', ()=>{ this.conns = this.conns.filter(c=>c!==conn); this._notifyCount(); });
+    });
+    hostPeer.on('error', (err)=>{
+      if(err && err.type === 'unavailable-id'){
+        hostPeer.destroy();
+        this._connectAsGuest(hostId);
+      }
+    });
+  }
+  _connectAsGuest(hostId){
+    const guestPeer = new Peer(undefined, {debug:0});
+    guestPeer.on('open', ()=>{
+      this.peer = guestPeer;
+      const conn = guestPeer.connect(hostId, {reliable:false});
+      conn.on('open', ()=>{
+        this.conns = [conn];
+        this.ready = true;
+        this._notifyCount();
+        this._flush();
+      });
+      conn.on('data', (data)=> this._emit(data));
+      conn.on('close', ()=>{ this.conns = []; this._notifyCount(); });
+    });
+    guestPeer.on('error', ()=>{
+      toast('⚠️ 온라인 방에 연결하지 못했어요. 네트워크(방화벽) 문제일 수 있어요');
+    });
+  }
+  postMessage(data){
+    if(!this.ready){ this.queue.push(data); return; }
+    for(const c of this.conns){ if(c.open) c.send(data); }
+  }
+  _flush(){ const q=this.queue; this.queue=[]; for(const d of q) this.postMessage(d); }
+  close(){ if(this.peer) this.peer.destroy(); }
+}
+
+function initOnline(){
+  // 이전에 온라인 모드를 플레이했다면 그때 만든 타이머가 안 지워지고 계속 쌓여서
+  // 온라인을 여러 번 할수록 점점 렉이 심해지는 버그가 있었음 - 새로 만들기 전에 항상 정리함
+  clearInterval(onlineBroadcastInterval);
+  // 로그인한 유저와 게스트는 서로 다른 방에 연결되어 마주치지 않음
+  const roomName = isGuest ? 'guest' : 'member';
+  bc = new PeerRelay(roomName);
+  bc.onPeerCountChange = (n)=>{
+    const el = document.getElementById('playerTagMode');
+    if(el) el.textContent = n>0 ? `온라인 (${n}명과 연결됨)` : '온라인 (상대 기다리는 중...)';
+  };
+  bc.onmessage = (ev)=>{
+    const msg = ev.data;
+    if(msg.type==='state' && msg.id !== player.id){
+      remoteSnakes[msg.id] = { name:msg.name, color:msg.color, segs:msg.segs, alive:msg.alive, crowns:msg.crowns||0, lastSeen: Date.now() };
+    }
+    if(msg.type==='bye' && msg.id) delete remoteSnakes[msg.id];
+    if(msg.type==='deathOrbs' && Array.isArray(msg.orbs)){
+      // 상대방이 죽으면서 남긴 구슬을 내 화면에도 똑같이 표시
+      for(const o of msg.orbs){ orbs.push(spawnOrb(o.x, o.y, o.color, 6)); }
+    }
+    if(msg.type==='creditKill' && msg.killerId === player.id && player.alive){
+      // 상대방 브라우저에서 우리가 처치자로 판정됨 → 이쪽에서 처치 기록/왕관을 인정
+      player.crowns = (player.crowns||0) + (msg.crowns||0);
+      registerKill(player);
+    }
+    if(msg.type==='friendRequest' && msg.to===player.id){
+      if(player.friendIds.has(msg.from)){
+        bc.postMessage({type:'friendAccept', to:msg.from, from:player.id, fromName:player.name});
+      } else if(player.friendIds.size >= MAX_FRIENDS){
+        bc.postMessage({type:'friendDecline', to:msg.from, fromName:player.name});
+      } else {
+        const accept = confirm(`${msg.fromName}님이 친구 요청을 보냈어요. 수락할까요? (친구끼리는 부딪혀도 죽지 않아요)`);
+        if(accept){
+          player.friendIds.add(msg.from);
+          bc.postMessage({type:'friendAccept', to:msg.from, from:player.id, fromName:player.name});
+          toast(`🤝 ${msg.fromName}님과 친구가 되었습니다!`);
+        } else {
+          bc.postMessage({type:'friendDecline', to:msg.from, fromName:player.name});
+        }
+      }
+    }
+    if(msg.type==='friendAccept' && msg.to===player.id){
+      if(player.friendIds.size < MAX_FRIENDS || player.friendIds.has(msg.from)){
+        player.friendIds.add(msg.from);
+        toast(`🤝 ${msg.fromName}님이 친구 요청을 수락했습니다! 이제 부딪혀도 죽지 않아요`);
+      }
+    }
+    if(msg.type==='friendDecline' && msg.to===player.id){
+      toast(`${msg.fromName}님이 친구 요청을 거절했습니다`);
+    }
+  };
+  onlineBroadcastInterval = setInterval(()=>{
+    if(player && bc){
+      // 원격 화면에서 또렷하게 보이도록 세그먼트를 건너뛰지 않고 그대로 전송(최대 200개)
+      bc.postMessage({type:'state', id:player.id, name:player.name, color:player.color, segs:player.segs.slice(0,200), alive:player.alive, crowns:player.crowns||0});
+    }
+    const now = Date.now();
+    for(const id in remoteSnakes){ if(now - remoteSnakes[id].lastSeen > 3000) delete remoteSnakes[id]; }
+  }, 60); // 100ms -> 60ms로 갱신 주기를 줄여 더 부드럽게 보이도록 함
+  addEventListener('beforeunload', ()=>{ if(bc && player) bc.postMessage({type:'bye', id:player.id}); });
+}
+/* ============================================================
+   친구 시스템 (순위표에서 요청 → 수락하면 서로 부딪혀도 죽지 않음, 최대 3명)
+============================================================ */
+const MAX_FRIENDS = 3;
+function sendFriendRequest(targetId, targetName, isRemote){
+  if(!player) return;
+  if(player.friendIds.has(targetId)){ toast('이미 친구예요'); return; }
+  if(player.friendIds.size >= MAX_FRIENDS){ toast(`친구는 최대 ${MAX_FRIENDS}명까지만 가능해요`); return; }
+  if(isRemote){
+    if(!bc){ toast('온라인 연결이 필요해요'); return; }
+    bc.postMessage({type:'friendRequest', to:targetId, from:player.id, fromName:player.name});
+    toast(`${targetName}님에게 친구 요청을 보냈습니다`);
+  } else {
+    // AI는 즉시 서로 친구가 됨 (양방향 면역)
+    const target = snakes.find(s=>s.id===targetId);
+    if(!target || !target.alive){ toast('대상을 찾을 수 없어요'); return; }
+    player.friendIds.add(targetId);
+    target.friendIds.add(player.id);
+    toast(`🤝 ${targetName}과 친구가 되었습니다! 이제 부딪혀도 죽지 않아요`);
+  }
+}
+
+/* ============================================================
+   렌더링
+============================================================ */
+function worldToScreen(x,y){ return { x: x - camera.x + canvas.width/2, y: y - camera.y + canvas.height/2 }; }
+
+function drawGrid(){
+  const gridSize = 60;
+  const offX = -(camera.x % gridSize);
+  const offY = -(camera.y % gridSize);
+  ctx.strokeStyle = THEMES[currentThemeKey].grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for(let x=offX; x<canvas.width; x+=gridSize){ ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); }
+  for(let y=offY; y<canvas.height; y+=gridSize){ ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); }
+  ctx.stroke();
+}
+function drawWorldBorder(){
+  const center = worldToScreen(WORLD_CENTER, WORLD_CENTER);
+  // 강 - 가장자리 안쪽에 반투명한 파란 링으로 표시
+  ctx.save();
+  ctx.strokeStyle = 'rgba(64,148,255,0.32)';
+  ctx.lineWidth = RIVER_WIDTH;
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, (RIVER_INNER_R + WORLD_RADIUS)/2, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.restore();
+  // 원형 맵의 바깥 경계선
+  ctx.strokeStyle = THEMES[currentThemeKey].border;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, WORLD_RADIUS, 0, Math.PI*2);
+  ctx.stroke();
+}
+function drawOrb(o){
+  const px = o.x - camera.x + canvas.width/2;
+  const py = o.y - camera.y + canvas.height/2;
+  if(px<-20||px>canvas.width+20||py<-20||py>canvas.height+20) return;
+  o.glow += 0.05;
+  const pulse = 1 + Math.sin(o.glow)*0.15;
+  ctx.fillStyle = o.color;
+  ctx.beginPath(); ctx.arc(px,py,o.r*pulse,0,Math.PI*2); ctx.fill();
+  // 가벼운 하이라이트 점 하나로 반짝임 표현 (shadowBlur 대신 사용, 성능 부담 적음)
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.beginPath(); ctx.arc(px-o.r*0.3,py-o.r*0.3,o.r*0.3,0,Math.PI*2); ctx.fill();
+}
+function flagEmoji(id){ const f = FLAGS.find(fl=>fl.id===id); return f? f.emoji : ''; }
+
+function shadeColor(hex, amt){
+  // hex 색상을 amt만큼 밝게(+) 또는 어둡게(-) 조정
+  let c = hex.replace('#','');
+  if(c.length===3) c = c.split('').map(ch=>ch+ch).join('');
+  const num = parseInt(c,16);
+  let r = (num>>16) + amt, g = ((num>>8)&0xff) + amt, b = (num&0xff) + amt;
+  r = clamp(r,0,255); g = clamp(g,0,255); b = clamp(b,0,255);
+  return '#' + (0x1000000 + r*0x10000 + g*0x100 + b).toString(16).slice(1);
+}
+
+function drawSnake(s){
+  if(!s.alive) return;
+  ctx.save();
+  const skin = SKINS[s.skinId] || SKINS.none;
+  const segs = s.segs;
+  const total = segs.length;
+  // 매우 긴 뱀은 세그먼트를 다 그리지 않고 일부만 그려 렉을 줄임 (구슬 느낌은 유지)
+  const stride = total > 1000 ? 5 : total > 600 ? 4 : total > 300 ? 3 : total > 150 ? 2 : 1;
+  const cw = canvas.width, ch = canvas.height, camX = camera.x, camY = camera.y;
+  // 몸통: ㅇㅇㅇㅇ 처럼 하나하나 분리된 동그란 구슬이 이어지는 형태
+  for(let i=total-1;i>=0;i--){
+    if(stride>1 && i!==0 && i%stride!==0) continue;
+    const seg = segs[i];
+    const px = seg.x - camX + cw/2;
+    const py = seg.y - camY + ch/2;
+    if(px<-40||px>cw+40||py<-40||py>ch+40) continue;
+    const t = i/total;
+    // 그리기 간격(stride)이 넓을수록 원을 더 크게 그려서 빈틈 없이 이어진 구슬처럼 보이게 함
+    const r = Math.max(6.5, 12 - t*3.2) * (1 + (stride-1)*0.55);
+    ctx.globalAlpha = 1 - t*0.3;
+    ctx.fillStyle = (i%2===0) ? s.beadLight : s.beadDark;
+    ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2); ctx.fill();
+
+    // 스킨 장식 (일부 세그먼트에만 가볍게 표시해 성능 부담을 줄임)
+    if(skin.id !== 'none' && i%4===0 && i>0){
+      drawSkinDecor(skin.id, {x:px,y:py}, r);
+    }
+  }
+  ctx.globalAlpha = 1;
+  const head = segs[0];
+  const hpx = head.x - camX + cw/2;
+  const hpy = head.y - camY + ch/2;
+  const hp = {x:hpx, y:hpy};
+  // 몸이 길어져 구슬이 커질 때(stride 증가) 눈도 같이 커지도록 머리 크기 기준으로 비율 계산
+  const headR = 12 * (1 + (stride-1)*0.55);
+  const eyeOff = headR * 0.42;
+  const eyeR = headR * 0.22;
+  const ex = Math.cos(s.heading+0.5)*eyeOff, ey = Math.sin(s.heading+0.5)*eyeOff;
+  const ex2 = Math.cos(s.heading-0.5)*eyeOff, ey2 = Math.sin(s.heading-0.5)*eyeOff;
+
+  if(skin.id !== 'none') drawSkinHeadDecor(skin.id, hp, s.heading);
+
+  if(skin.id !== 'smile'){
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(hp.x+ex,hp.y+ey,eyeR,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hp.x+ex2,hp.y+ey2,eyeR,0,Math.PI*2); ctx.fill();
+  }
+
+  ctx.font = '600 12px Segoe UI';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.textAlign = 'center';
+  const flag = s.isPlayer && currentUser ? flagEmoji(currentUser.equippedFlag) : '';
+  const crownTag = (s.crowns>0) ? ` 👑${s.crowns}` : '';
+  ctx.fillText((flag? flag+' ':'') + s.name + crownTag, hp.x, hp.y-16);
+  ctx.restore();
+}
+function drawRemote(r){
+  if(!r.segs || !r.segs.length) return;
+  if(!r.beadLight){ r.beadLight = shadeColor(r.color,18); r.beadDark = shadeColor(r.color,-22); }
+  ctx.save();
+  const cw = canvas.width, ch = canvas.height, camX = camera.x, camY = camera.y;
+  const total = r.segs.length;
+  for(let i=total-1;i>=0;i--){
+    const seg = r.segs[i];
+    const px = seg.x - camX + cw/2;
+    const py = seg.y - camY + ch/2;
+    if(px<-40||px>cw+40||py<-40||py>ch+40) continue;
+    const t = i/total;
+    ctx.fillStyle = (i%2===0) ? r.beadLight : r.beadDark;
+    ctx.globalAlpha = 1 - t*0.15; // 이전보다 투명도를 훨씬 덜 주어 또렷하게 보이도록 함
+    const rad = Math.max(6.5, 12 - t*3.2);
+    ctx.beginPath(); ctx.arc(px,py, rad, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  if(r.segs[0]){
+    const hpx = r.segs[0].x - camX + cw/2;
+    const hpy = r.segs[0].y - camY + ch/2;
+
+    // 다음 세그먼트와의 방향으로 대략적인 진행 방향(눈 위치)을 계산
+    let heading = 0;
+    if(r.segs.length > 1){
+      heading = Math.atan2(r.segs[0].y - r.segs[1].y, r.segs[0].x - r.segs[1].x);
+    }
+    const eyeOff = 5;
+    const ex = Math.cos(heading+0.5)*eyeOff, ey = Math.sin(heading+0.5)*eyeOff;
+    const ex2 = Math.cos(heading-0.5)*eyeOff, ey2 = Math.sin(heading-0.5)*eyeOff;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(hpx+ex,hpy+ey,2.6,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(hpx+ex2,hpy+ey2,2.6,0,Math.PI*2); ctx.fill();
+
+    ctx.font = '600 12px Segoe UI';
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.textAlign = 'center';
+    const crownTag = (r.crowns>0) ? ` 👑${r.crowns}` : '';
+    ctx.fillText(r.name + crownTag + ' 🌐', hpx, hpy-16);
+  }
+  ctx.restore();
+}
+
+/* ============================================================
+   미니맵 (우측 하단)
+============================================================ */
+const minimapCanvas = document.getElementById('minimap');
+const minimapCtx = minimapCanvas.getContext('2d');
+function drawMinimap(){
+  const scale = minimapCanvas.width / WORLD_SIZE;
+  minimapCtx.clearRect(0,0,minimapCanvas.width,minimapCanvas.height);
+
+  // 배경 원형 테두리 (실제 맵이 원형이므로 미니맵도 원으로 표시)
+  minimapCtx.strokeStyle = 'rgba(94,242,192,0.25)';
+  minimapCtx.lineWidth = 1.5;
+  minimapCtx.beginPath();
+  minimapCtx.arc(minimapCanvas.width/2, minimapCanvas.height/2, (minimapCanvas.width/2)-1, 0, Math.PI*2);
+  minimapCtx.stroke();
+
+  // AI / 다른 뱀들
+  for(const s of snakes){
+    if(!s.alive || s.isPlayer) continue;
+    const h = s.segs[0];
+    minimapCtx.fillStyle = 'rgba(255,93,115,0.85)';
+    minimapCtx.beginPath();
+    minimapCtx.arc(h.x*scale, h.y*scale, 2.5, 0, Math.PI*2);
+    minimapCtx.fill();
+  }
+  // 온라인 원격 뱀
+  if(mode==='online'){
+    for(const id in remoteSnakes){
+      const r = remoteSnakes[id];
+      if(!r.segs || !r.segs[0]) continue;
+      minimapCtx.fillStyle = 'rgba(110,168,255,0.9)';
+      minimapCtx.beginPath();
+      minimapCtx.arc(r.segs[0].x*scale, r.segs[0].y*scale, 2.5, 0, Math.PI*2);
+      minimapCtx.fill();
+    }
+  }
+  // 카메라(현재 보이는 화면) 영역 표시
+  if(player){
+    const vw = canvas.width*scale, vh = canvas.height*scale;
+    minimapCtx.strokeStyle = 'rgba(255,255,255,0.45)';
+    minimapCtx.lineWidth = 1;
+    minimapCtx.strokeRect(camera.x*scale - vw/2, camera.y*scale - vh/2, vw, vh);
+  }
+  // 플레이어(나)는 가장 위에 크고 밝게 표시
+  if(player && player.alive){
+    const h = player.segs[0];
+    minimapCtx.fillStyle = '#5ef2c0';
+    minimapCtx.shadowColor = '#5ef2c0';
+    minimapCtx.shadowBlur = 6;
+    minimapCtx.beginPath();
+    minimapCtx.arc(h.x*scale, h.y*scale, 4, 0, Math.PI*2);
+    minimapCtx.fill();
+    minimapCtx.shadowBlur = 0;
+  }
+
+  // 왕관을 가장 많이 가진 "왕"을 미니맵에 👑로 표시
+  let king = null, kingCrowns = 0;
+  for(const s of snakes){
+    if(s.alive && (s.crowns||0) > kingCrowns){ kingCrowns = s.crowns; king = s.segs[0]; }
+  }
+  if(mode==='online'){
+    for(const id in remoteSnakes){
+      const r = remoteSnakes[id];
+      if(r.alive && r.segs && r.segs[0] && (r.crowns||0) > kingCrowns){ kingCrowns = r.crowns; king = r.segs[0]; }
+    }
+  }
+  if(king){
+    minimapCtx.font = '12px sans-serif';
+    minimapCtx.textAlign = 'center';
+    minimapCtx.textBaseline = 'middle';
+    minimapCtx.fillText('👑', king.x*scale, king.y*scale - 7);
+  }
+}
+
+/* ============================================================
+   메인 루프
+============================================================ */
+let frameCount = 0;
+function updateHUD(){
+  document.getElementById('scoreVal').textContent = player? snakeLength(player) : 0;
+
+  // 맵 왼쪽 가장자리 벽에 붙으면 개발자 모드 버튼이 나타남
+  if(player && player.alive && !devMode){
+    const dx = player.segs[0].x - WORLD_CENTER, dy = player.segs[0].y - WORLD_CENTER;
+    const d = Math.hypot(dx,dy);
+    const angleDeg = Math.atan2(dy,dx) * 180/Math.PI;
+    const nearLeftWall = d > WORLD_RADIUS - 25 && Math.abs(angleDeg) > 135;
+    devEdgeBtn.style.display = nearLeftWall ? 'flex' : 'none';
+  } else {
+    devEdgeBtn.style.display = 'none';
+  }
+
+  // 리더보드는 매 프레임 갱신하지 않고 8프레임마다 갱신해 DOM 부담을 줄임
+  if(frameCount % 8 !== 0) return;
+  let list = snakes.filter(s=>s.alive).map(s=>({id:s.id, name:s.name, len:snakeLength(s), crowns:s.crowns||0, isPlayer:s.isPlayer, isRemote:false}));
+  if(mode==='online'){
+    for(const id in remoteSnakes){
+      const r = remoteSnakes[id];
+      if(r.alive && r.segs && r.segs.length) list.push({id, name:r.name, len:r.segs.length, crowns:r.crowns||0, isPlayer:false, isRemote:true});
+    }
+  }
+  // 길이 순으로 순위를 매기고, 길이가 같으면 왕관이 많은 쪽이 위로 감
+  list.sort((a,b)=> b.len-a.len || b.crowns-a.crowns);
+  list = list.slice(0,5);
+  const lb = document.getElementById('lbBody');
+  const friendCount = player ? player.friendIds.size : 0;
+  lb.innerHTML = list.map(s=>{
+    let action = '';
+    if(!s.isPlayer && player){
+      if(player.friendIds.has(s.id)){
+        action = `<span class="lbFriendTag" title="친구">🤝</span>`;
+      } else if(friendCount < MAX_FRIENDS){
+        action = `<button class="lbFriendBtn" data-id="${s.id}" data-name="${s.name}" data-remote="${s.isRemote?1:0}" title="친구 요청 보내기">➕</button>`;
+      }
+    }
+    return `<div class="lbRow ${s.isPlayer?'me':''}">${s.name}${s.crowns>0?' 👑'+s.crowns:''}<span>${s.len} ${action}</span></div>`;
+  }).join('');
+  lb.querySelectorAll('.lbFriendBtn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      sendFriendRequest(btn.dataset.id, btn.dataset.name, btn.dataset.remote==='1');
+    });
+  });
+}
+function gameOver(reason){
+  running = false;
+  document.getElementById('deathReason').textContent = reason;
+  document.getElementById('deathScreen').style.display = 'flex';
+  document.getElementById('minimapWrap').style.display = 'none';
+  boostBtnEl.style.display = 'none';
+  devEdgeBtn.style.display = 'none';
+}
+function updatePlayerTagTier(){
+  if(!currentUser) return;
+  const tier = getTier(currentUser.kills);
+  const el = document.getElementById('playerTagTier');
+  if(!el) return;
+  el.textContent = tier.name;
+  el.style.background = tier.color + '33';
+  el.style.color = tier.color;
+}
+function registerKill(killerSnake){
+  if(killerSnake.isPlayer && currentUser){
+    currentUser.kills += 1;
+    updateQuestProgress('kill', 1);
+
+    let bonusMsg = '';
+    if(currentUser.kills % 15 === 0){
+      currentUser.diamonds += 15;
+      bonusMsg = ' 🎁 15마리 처치 보너스! 💎+15';
+    }
+
+    persistCurrentUser();
+    renderProfileBar();
+    updatePlayerTagTier();
+    toast('처치! 티어: ' + getTier(currentUser.kills).name + bonusMsg);
+  }
+}
+
+const AI_NAMES = ['바이퍼','코브라','킹코브라','파이썬','블랙맘바','아나콘다','방울뱀','살무사','구렁이','산호뱀'];
+function aiName(){ return AI_NAMES[Math.floor(Math.random()*AI_NAMES.length)] + Math.floor(Math.random()*99); }
+
+function loop(){
+  if(!running) return;
+  ctx.fillStyle = THEMES[currentThemeKey].bg;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // 1) 먼저 모든 뱀을 이동시킨다 (충돌 검사는 전부 이동한 뒤 한 번에 처리)
+  if(player && player.alive){
+    const targetAngle = Math.atan2(mouse.y - canvas.height/2, mouse.x - canvas.width/2);
+    const boosting = isBoosting();
+    moveSnake(player, targetAngle, boosting);
+    eatOrbs(player);
+    eatFrogs(player);
+
+    if(boosting && !wasBoosting) updateQuestProgress('boost', 1);
+    wasBoosting = boosting;
+
+    setQuestProgressAbs('length', snakeLength(player));
+    setQuestProgressAbs('survive', Math.floor((Date.now()-sessionStart)/1000));
+
+    camera.x = player.segs[0].x;
+    camera.y = player.segs[0].y;
+  }
+  if(mode==='ai'){
+    for(const s of snakes){
+      if(s.isAI && s.alive){
+        aiThink(s);
+        eatOrbs(s);
+        eatFrogs(s);
+      }
+    }
+  }
+
+  // 2) 공간 그리드를 한 번만 구성 (뱀 길이와 상관없이 충돌 검사를 빠르게 유지)
+  buildCollisionGrid();
+
+  // 3) 그리드 기반으로 충돌 검사
+  if(player && player.alive){
+    const hit = checkCollisionGrid(player);
+    if(hit){
+      player.alive = false;
+      dropDeathOrbs(player);
+      const crownsLost = player.crowns||0;
+      player.crowns = 0;
+      if(!hit.isRemote){
+        transferCrowns(hit, crownsLost);
+        registerKill(hit);
+      } else if(bc){
+        // 처치자가 원격 플레이어이므로 그 쪽 브라우저에 알려 처치 기록/왕관을 인정해줌
+        bc.postMessage({type:'creditKill', killerId: hit.id.replace('remote_',''), crowns: crownsLost});
+      }
+      gameOver(`${hit.name}의 몸통에 부딪혔습니다`);
+    }
+  }
+  if(mode==='ai'){
+    for(const s of snakes){
+      if(s.isAI && s.alive){
+        const hit = checkCollisionGrid(s);
+        if(hit){
+          s.alive = false; dropDeathOrbs(s);
+          const crownsLost = s.crowns||0;
+          s.crowns = 0;
+          if(!hit.isRemote){ transferCrowns(hit, crownsLost); registerKill(hit); }
+        }
+      }
+    }
+    snakes = snakes.filter(s=> s.isPlayer || s.alive);
+    while(snakes.filter(s=>s.isAI).length < AI_COUNT){
+      snakes.push(makeSnake({name: aiName(), color: randomColor(), isAI:true}));
+    }
+  }
+
+  ensureOrbCount();
+  ensureFrogCount();
+  for(const f of frogs) updateFrog(f);
+  drawGrid();
+  for(const o of orbs) drawOrb(o);
+  for(const f of frogs) drawFrog(f);
+  if(eventActive){
+    pickupEventDiamonds();
+    for(const ed of eventDiamonds) drawEventDiamond(ed);
+  }
+  for(const s of snakes) if(!s.isPlayer) drawSnake(s);
+  if(mode==='online'){ for(const id in remoteSnakes) drawRemote(remoteSnakes[id]); }
+  if(player) drawSnake(player);
+  drawWorldBorder();
+  updateHUD();
+  frameCount++;
+  if(frameCount % 3 === 0) drawMinimap();
+
+  requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   AUTH 화면 로직
+============================================================ */
+let authTab = 'login';
+document.querySelectorAll('#authScreen .tabBtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#authScreen .tabBtn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    authTab = btn.dataset.tab;
+    document.getElementById('authSubmitBtn').textContent = authTab==='login' ? '로그인' : '회원가입';
+    document.getElementById('authErr').textContent = '';
+  });
+});
+document.getElementById('authSubmitBtn').addEventListener('click', ()=>{
+  const id = document.getElementById('authId').value.trim();
+  const pw = document.getElementById('authPw').value;
+  const errEl = document.getElementById('authErr');
+  if(!id || !pw){ errEl.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
+  const result = authTab==='login' ? login(id, pw) : register(id, pw);
+  if(!result.ok){ errEl.textContent = result.msg; return; }
+  errEl.textContent = '';
+  enterHome();
+});
+document.getElementById('guestBtn').addEventListener('click', ()=>{
+  startGuest();
+  enterHome();
+});
+
+function enterHome(){
+  ensureDailyQuests();
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('homeScreen').style.display = 'flex';
+  document.getElementById('nameInput').value = isGuest ? '게스트' : currentUser.username;
+  renderProfileBar();
+  renderShopModal();
+  renderQuestModal();
+  applySkinLockToColorPicker();
+}
+
+/* 자동 로그인 시도 */
+if(tryAutoLogin()){ enterHome(); }
+
+/* ============================================================
+   HOME 화면 로직
+============================================================ */
+let selectedColor = '#5ef2c0';
+document.getElementById('colorRow').addEventListener('click', (e)=>{
+  const sw = e.target.closest('.colorSwatch');
+  if(!sw) return;
+  document.querySelectorAll('.colorSwatch').forEach(el=>el.classList.remove('selected'));
+  sw.classList.add('selected');
+  selectedColor = sw.dataset.color;
+  document.getElementById('customColor').value = selectedColor;
+});
+document.getElementById('customColor').addEventListener('input', (e)=>{
+  selectedColor = e.target.value;
+  document.querySelectorAll('.colorSwatch').forEach(el=>el.classList.remove('selected'));
+});
+document.querySelectorAll('.modeRow .modeBtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.modeRow .modeBtn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    mode = btn.dataset.mode;
+  });
+});
+
+function openShop(){
+  renderShopModal();
+  document.getElementById('shopModal').classList.add('show');
+}
+document.getElementById('openShopBtn').addEventListener('click', openShop);
+document.querySelectorAll('#shopModal .tabBtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#shopModal .tabBtn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.shoptab;
+    document.getElementById('flagGrid').style.display = tab==='flag' ? 'grid' : 'none';
+    document.getElementById('skinGrid').style.display = tab==='skin' ? 'grid' : 'none';
+    document.getElementById('shopTitle').textContent = tab==='flag' ? '🏳️ 깃발 상점' : '🐍 스킨 상점';
+  });
+});
+function openQuests(){
+  ensureDailyQuests();
+  renderQuestModal();
+  document.getElementById('questModal').classList.add('show');
+}
+document.getElementById('openQuestBtn').addEventListener('click', openQuests);
+function openColorPicker(){
+  document.getElementById('colorModal').classList.add('show');
+}
+document.getElementById('openColorBtn').addEventListener('click', openColorPicker);
+document.getElementById('openSettingsBtn').addEventListener('click', ()=>{
+  document.getElementById('mobileModeToggle').checked = mobileMode;
+  document.getElementById('settingsModal').classList.add('show');
+});
+document.getElementById('mobileModeToggle').addEventListener('change', (e)=>{
+  mobileMode = e.target.checked;
+  safeSet('orbitSnakeMobileMode', mobileMode ? '1' : '0');
+  if(running) boostBtnEl.style.display = mobileMode ? 'flex' : 'none';
+  if(!mobileMode) setBoostHeld(false);
+});
+document.querySelectorAll('.closeX').forEach(btn=>{
+  btn.addEventListener('click', ()=> document.getElementById(btn.dataset.close).classList.remove('show'));
+});
+document.getElementById('claimQuestBtn').addEventListener('click', claimDailyQuest);
+
+document.getElementById('codeBtn').addEventListener('click', ()=>{
+  redeemCode(document.getElementById('codeInput').value);
+  document.getElementById('codeInput').value = '';
+});
+
+function doLogout(){
+  logout();
+  document.getElementById('homeScreen').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('authId').value = '';
+  document.getElementById('authPw').value = '';
+}
+document.getElementById('logoutBtnTop').addEventListener('click', doLogout);
+
+document.getElementById('playBtn').addEventListener('click', ()=>{
+  if(isIncognito){
+    toast('🚫 시크릿(비공개) 모드에서는 게임을 실행할 수 없습니다');
+    return;
+  }
+  startGame();
+});
+document.getElementById('respawnBtn').addEventListener('click', ()=>{
+  document.getElementById('deathScreen').style.display='none';
+  document.getElementById('homeScreen').style.display='flex';
+  clearInterval(themeInterval);
+  if(bc){ try{ bc.postMessage({type:'bye', id: player ? player.id : null}); bc.close(); }catch(e){} bc = null; clearInterval(onlineBroadcastInterval); }
+  renderProfileBar();
+});
+document.getElementById('reviveBtn').addEventListener('click', ()=>{
+  if(!currentUser || (!devMode && currentUser.diamonds < 10)){
+    toast('다이아몬드가 부족합니다 (10개 필요)');
+    return;
+  }
+  if(!devMode) currentUser.diamonds -= 10;
+  persistCurrentUser();
+  renderProfileBar();
+
+  // 몸 길이/구슬 등 상태는 그대로 유지한 채 다시 살아난다 (겹침 방지를 위해 안전한 위치로 살짝 이동)
+  player.alive = true;
+  const safePoint = clampToCircle(player.segs[0].x + rand(-150,150), player.segs[0].y + rand(-150,150), WORLD_RADIUS-200);
+  const dx = safePoint.x - player.segs[0].x, dy = safePoint.y - player.segs[0].y;
+  for(const seg of player.segs){ seg.x += dx; seg.y += dy; }
+
+  document.getElementById('deathScreen').style.display = 'none';
+  document.getElementById('minimapWrap').style.display = 'block';
+  boostBtnEl.style.display = mobileMode ? 'flex' : 'none';
+  toast('💎 다이아 10개로 부활했습니다!');
+  running = true;
+  requestAnimationFrame(loop);
+});
+
+function startGame(){
+  if(!currentUser){ startGuest(); }
+  const name = document.getElementById('nameInput').value.trim() || (isGuest?'게스트':currentUser.username);
+
+  const equippedSkin = currentUser.equippedSkin || 'none';
+  const finalColor = (equippedSkin !== 'none' && SKINS[equippedSkin]) ? SKINS[equippedSkin].color : selectedColor;
+
+  orbs = [];
+  for(let i=0;i<ORB_COUNT;i++) orbs.push(spawnOrb());
+  frogs = [];
+  for(let i=0;i<FROG_COUNT;i++) frogs.push(spawnFrog());
+  remoteSnakes = {};
+  wasBoosting = false;
+  sessionStart = Date.now();
+  devMode = false;
+  devEdgeBtn.style.display = 'none';
+  devModeTag.style.display = 'none';
+
+  player = makeSnake({name, color:finalColor, isPlayer:true, x:WORLD_SIZE/2, y:WORLD_SIZE/2, skinId:equippedSkin});
+  player.alive = true;
+
+  snakes = [player];
+  if(mode==='ai'){
+    for(let i=0;i<AI_COUNT;i++) snakes.push(makeSnake({name:aiName(), color:randomColor(), isAI:true}));
+  }
+  if(mode==='online'){ initOnline(); }
+
+  document.getElementById('playerTagName').innerHTML = `${name} <span id="playerTagTier" class="tierBadge" style="font-size:10px;padding:2px 8px;"></span>`;
+  document.getElementById('playerTagMode').textContent = mode==='ai' ? 'AI전' : '온라인 (연결 중...)';
+  updatePlayerTagTier();
+  startThemeCycle();
+
+  clearInterval(eventCheckInterval);
+  eventActive = false; eventDiamonds = [];
+  checkEventStatus();
+  eventCheckInterval = setInterval(checkEventStatus, 15000);
+
+  document.getElementById('homeScreen').style.display = 'none';
+  document.getElementById('deathScreen').style.display = 'none';
+  document.getElementById('minimapWrap').style.display = 'block';
+  boostBtnEl.style.display = mobileMode ? 'flex' : 'none';
+
+  running = true;
+  requestAnimationFrame(loop);
+}
+
+})();
+</script>
+</body>
+</html>
