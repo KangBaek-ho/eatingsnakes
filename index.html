@@ -227,33 +227,6 @@
 
 <canvas id="gameCanvas"></canvas>
 
-<!-- ===================== AUTH SCREEN ===================== -->
-<div id="authScreen" class="overlayScreen">
-  <div class="card">
-    <div class="eyebrow">Multiplayer Arena</div>
-    <div class="heading">EATING <span>SNAKES</span></div>
-
-    <div class="tabRow">
-      <div class="tabBtn active" data-tab="login">로그인</div>
-      <div class="tabBtn" data-tab="register">회원가입</div>
-    </div>
-
-    <label class="fieldLabel">아이디</label>
-    <input type="text" id="authId" maxlength="16" placeholder="아이디 입력">
-    <label class="fieldLabel">비밀번호</label>
-    <input type="password" id="authPw" maxlength="24" placeholder="비밀번호 입력">
-
-    <div class="errMsg" id="authErr"></div>
-    <button class="bigBtn" id="authSubmitBtn">로그인</button>
-    <button class="bigBtn secondary" id="guestBtn">게스트로 시작하기</button>
-    <div class="errMsg" style="color:var(--text-dim);margin-top:10px;">
-      ※ 이 로그인은 서버가 아닌 "이 브라우저"에만 저장되는 로컬 데모 계정입니다. 실제 서버 인증이 아니니 진짜 비밀번호를 쓰지 마세요.
-      시크릿(비공개) 모드는 창을 닫으면 저장된 데이터가 모두 사라지고, 평소 모드에서 만든 계정과도 공유되지 않아요. 시크릿 창 안에서 새로 회원가입하면 그 창이 열려있는 동안은 정상적으로 로그인할 수 있어요.
-    </div>
-    <a href="https://kangbaek-ho.github.io/faq/" class="faqLink">❓ 자주 묻는 질문</a>
-  </div>
-</div>
-
 <!-- ===================== HOME SCREEN ===================== -->
 <div id="homeScreen" class="overlayScreen" style="display:none;">
   <div class="card">
@@ -282,12 +255,10 @@
     <button class="bigBtn" id="playBtn">게임 시작</button>
     <div class="errMsg" style="color:var(--text-dim);margin-top:10px;">
       ※ 온라인 모드는 이제 다른 컴퓨터에 있는 사람과도 실제로 만날 수 있어요 (서버 없이 브라우저끼리 직접 연결되는 WebRTC 방식). 같은 순간에 온라인 모드로 들어와 있어야 서로 만날 수 있고, 방화벽이 까다로운 네트워크(회사/학교 등)에서는 연결이 안 될 수도 있어요.
-      로그인한 유저와 게스트는 서로 다른 방에 배정되어 마주치지 않아요.
-      게스트로 플레이하면 다이아·티어·처치 기록은 저장되지 않아요.
+      이름·다이아·티어·처치 등 기록은 로그인 없이 이 브라우저에 저장되어 다음에 다시 들어와도 이어집니다. 단, 다른 기기나 브라우저에서는 이어지지 않아요.
     </div>
 
-    <button id="logoutBtnTop" style="width:100%;margin-top:14px;background:none;border:1px solid var(--panel-line);color:var(--text-dim);border-radius:8px;padding:10px;cursor:pointer;">로그아웃</button>
-    <a href="https://kangbaek-ho.github.io/faq/" class="faqLink">❓ 자주 묻는 질문</a>
+    <a href="https://KangBeak-ho.github.io/faq/" class="faqLink">❓ 자주 묻는 질문</a>
   </div>
 </div>
 
@@ -469,8 +440,7 @@ let isIncognito = false;
    차단(예외 발생)하기도 합니다. 그런 경우에도 로그인/회원가입이 최소한 "그 탭이 열려있는
    동안"은 정상 동작하도록, 실패 시 메모리 저장소로 자동 전환합니다.
 ============================================================ */
-const ACC_KEY = 'orbitSnakeAccounts';
-const SESSION_KEY = 'orbitSnakeSession';
+const GUEST_KEY = 'orbitSnakeGuestProfile'; // 로그인 없이 이 브라우저에 저장되는 로컬 기록
 let _memoryStorage = {};
 function safeGet(key){
   try{ return localStorage.getItem(key); }
@@ -484,11 +454,6 @@ function safeRemove(key){
   try{ localStorage.removeItem(key); }
   catch(e){ delete _memoryStorage[key]; }
 }
-
-function loadAccounts(){
-  try{ return JSON.parse(safeGet(ACC_KEY)) || {}; }catch(e){ return {}; }
-}
-function saveAccounts(accs){ safeSet(ACC_KEY, JSON.stringify(accs)); }
 
 function newAccountData(username){
   return {
@@ -513,55 +478,22 @@ function ensureAccountFields(data){
   return data;
 }
 
-let currentUser = null; // account object (persisted to localStorage on change)
-let isGuest = false;
+let currentUser = null; // 이 브라우저에만 저장되는 로컬 프로필 (로그인 없음)
+let isGuest = true;
 
 function persistCurrentUser(){
-  if(isGuest || !currentUser) return;
-  const accs = loadAccounts();
-  accs[currentUser.username].data = currentUser;
-  saveAccounts(accs);
+  if(!currentUser) return;
+  // 로그인 없이도 "이 브라우저"에 기록(이름/티어/처치/다이아 등)을 저장
+  safeSet(GUEST_KEY, JSON.stringify(currentUser));
 }
 
-function login(username, password){
-  const accs = loadAccounts();
-  const rec = accs[username];
-  if(!rec) return {ok:false, msg:'존재하지 않는 아이디입니다.'};
-  if(rec.password !== password) return {ok:false, msg:'비밀번호가 일치하지 않습니다.'};
-  currentUser = ensureAccountFields(rec.data);
-  isGuest = false;
-  safeSet(SESSION_KEY, username);
-  return {ok:true};
-}
-function register(username, password){
-  if(!username || username.length<2) return {ok:false, msg:'아이디는 2자 이상이어야 합니다.'};
-  if(!password || password.length<4) return {ok:false, msg:'비밀번호는 4자 이상이어야 합니다.'};
-  const accs = loadAccounts();
-  if(accs[username]) return {ok:false, msg:'이미 존재하는 아이디입니다.'};
-  accs[username] = { password, data: newAccountData(username) };
-  saveAccounts(accs);
-  currentUser = accs[username].data;
-  isGuest = false;
-  safeSet(SESSION_KEY, username);
-  return {ok:true};
-}
-function logout(){
-  currentUser = null;
-  isGuest = false;
-  safeRemove(SESSION_KEY);
-}
-function tryAutoLogin(){
-  const uname = safeGet(SESSION_KEY);
-  if(!uname) return false;
-  const accs = loadAccounts();
-  if(!accs[uname]) return false;
-  currentUser = ensureAccountFields(accs[uname].data);
-  isGuest = false;
-  return true;
+function loadGuestProfile(){
+  try{ return JSON.parse(safeGet(GUEST_KEY)); }catch(e){ return null; }
 }
 function startGuest(){
-  isGuest = true;
-  currentUser = newAccountData('게스트');
+  const saved = loadGuestProfile();
+  currentUser = saved ? ensureAccountFields(saved) : newAccountData('플레이어');
+  persistCurrentUser();
 }
 
 /* ============================================================
@@ -852,7 +784,7 @@ function equipFlag(id){
 function redeemCode(raw){
   const code = raw.trim().toLowerCase().replace(/\s+/g,' ');
   const msgEl = document.getElementById('codeMsg');
-  if(!currentUser || isGuest){ msgEl.textContent = '로그인 후 사용할 수 있어요. (게스트 기록은 저장되지 않아요)'; return; }
+  if(!currentUser){ msgEl.textContent = '먼저 게스트로 시작하거나 로그인하세요.'; return; }
 
   if(code === 'very big snake' || code === '매우 큰 뱀'){
     if(currentUser.redeemedCodes.includes('verybigsnake')){
@@ -893,7 +825,7 @@ function redeemCode(raw){
 function renderProfileBar(){
   if(!currentUser) return;
   const tier = getTier(currentUser.kills);
-  document.getElementById('pbName').textContent = isGuest ? '게스트' : currentUser.username;
+  document.getElementById('pbName').textContent = currentUser.username;
   document.getElementById('pbKills').textContent = currentUser.kills;
   const tierBadge = document.getElementById('pbTier');
   tierBadge.textContent = tier.name;
@@ -1622,7 +1554,7 @@ function initOnline(){
   // 온라인을 여러 번 할수록 점점 렉이 심해지는 버그가 있었음 - 새로 만들기 전에 항상 정리함
   clearInterval(onlineBroadcastInterval);
   // 로그인한 유저와 게스트는 서로 다른 방에 연결되어 마주치지 않음
-  const roomName = isGuest ? 'guest' : 'member';
+  const roomName = 'guest';
   bc = new PeerRelay(roomName);
   bc.onPeerCountChange = (n)=>{
     const el = document.getElementById('playerTagMode');
@@ -2111,46 +2043,20 @@ function loop(){
 }
 
 /* ============================================================
-   AUTH 화면 로직
+   시작 화면 로직 (로그인 없이 바로 로컬 기록으로 시작)
 ============================================================ */
-let authTab = 'login';
-document.querySelectorAll('#authScreen .tabBtn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('#authScreen .tabBtn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    authTab = btn.dataset.tab;
-    document.getElementById('authSubmitBtn').textContent = authTab==='login' ? '로그인' : '회원가입';
-    document.getElementById('authErr').textContent = '';
-  });
-});
-document.getElementById('authSubmitBtn').addEventListener('click', ()=>{
-  const id = document.getElementById('authId').value.trim();
-  const pw = document.getElementById('authPw').value;
-  const errEl = document.getElementById('authErr');
-  if(!id || !pw){ errEl.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
-  const result = authTab==='login' ? login(id, pw) : register(id, pw);
-  if(!result.ok){ errEl.textContent = result.msg; return; }
-  errEl.textContent = '';
-  enterHome();
-});
-document.getElementById('guestBtn').addEventListener('click', ()=>{
-  startGuest();
-  enterHome();
-});
-
 function enterHome(){
   ensureDailyQuests();
-  document.getElementById('authScreen').style.display = 'none';
   document.getElementById('homeScreen').style.display = 'flex';
-  document.getElementById('nameInput').value = isGuest ? '게스트' : currentUser.username;
+  document.getElementById('nameInput').value = currentUser.username;
   renderProfileBar();
   renderShopModal();
   renderQuestModal();
   applySkinLockToColorPicker();
 }
 
-/* 자동 로그인 시도 */
-if(tryAutoLogin()){ enterHome(); }
+startGuest();
+enterHome();
 
 /* ============================================================
    HOME 화면 로직
@@ -2221,15 +2127,6 @@ document.getElementById('codeBtn').addEventListener('click', ()=>{
   document.getElementById('codeInput').value = '';
 });
 
-function doLogout(){
-  logout();
-  document.getElementById('homeScreen').style.display = 'none';
-  document.getElementById('authScreen').style.display = 'flex';
-  document.getElementById('authId').value = '';
-  document.getElementById('authPw').value = '';
-}
-document.getElementById('logoutBtnTop').addEventListener('click', doLogout);
-
 document.getElementById('playBtn').addEventListener('click', ()=>{
   if(isIncognito){
     toast('🚫 시크릿(비공개) 모드에서는 게임을 실행할 수 없습니다');
@@ -2269,7 +2166,11 @@ document.getElementById('reviveBtn').addEventListener('click', ()=>{
 
 function startGame(){
   if(!currentUser){ startGuest(); }
-  const name = document.getElementById('nameInput').value.trim() || (isGuest?'게스트':currentUser.username);
+  const name = document.getElementById('nameInput').value.trim() || currentUser.username;
+  if(currentUser.username !== name){
+    currentUser.username = name;
+    persistCurrentUser();
+  }
 
   const equippedSkin = currentUser.equippedSkin || 'none';
   const finalColor = (equippedSkin !== 'none' && SKINS[equippedSkin]) ? SKINS[equippedSkin].color : selectedColor;
