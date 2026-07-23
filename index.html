@@ -258,7 +258,7 @@
       이름·다이아·티어·처치 등 기록은 로그인 없이 이 브라우저에 저장되어 다음에 다시 들어와도 이어집니다. 단, 다른 기기나 브라우저에서는 이어지지 않아요.
     </div>
 
-    <a href="https://KangBeak-ho.github.io/faq/" class="faqLink">❓ 자주 묻는 질문</a>
+    <a href="https://kangbaek-ho.github.io/faq/" class="faqLink">❓ 자주 묻는 질문</a>
   </div>
 </div>
 
@@ -2111,6 +2111,17 @@ document.getElementById('openSettingsBtn').addEventListener('click', ()=>{
   document.getElementById('mobileModeToggle').checked = mobileMode;
   document.getElementById('settingsModal').classList.add('show');
 });
+function saveNickname(){
+  const name = document.getElementById('nameInput').value.trim();
+  if(!currentUser || !name) return;
+  if(currentUser.username !== name){
+    currentUser.username = name;
+    persistCurrentUser();
+    renderProfileBar();
+  }
+}
+document.getElementById('nameInput').addEventListener('change', saveNickname);
+document.getElementById('nameInput').addEventListener('blur', saveNickname);
 document.getElementById('mobileModeToggle').addEventListener('change', (e)=>{
   mobileMode = e.target.checked;
   safeSet('orbitSnakeMobileMode', mobileMode ? '1' : '0');
@@ -2118,7 +2129,10 @@ document.getElementById('mobileModeToggle').addEventListener('change', (e)=>{
   if(!mobileMode) setBoostHeld(false);
 });
 document.querySelectorAll('.closeX').forEach(btn=>{
-  btn.addEventListener('click', ()=> document.getElementById(btn.dataset.close).classList.remove('show'));
+  btn.addEventListener('click', ()=>{
+    if(btn.dataset.close === 'settingsModal') saveNickname();
+    document.getElementById(btn.dataset.close).classList.remove('show');
+  });
 });
 document.getElementById('claimQuestBtn').addEventListener('click', claimDailyQuest);
 
