@@ -258,7 +258,7 @@
       이름·다이아·티어·처치 등 기록은 로그인 없이 이 브라우저에 저장되어 다음에 다시 들어와도 이어집니다. 단, 다른 기기나 브라우저에서는 이어지지 않아요.
     </div>
 
-    <a href="https://kangbaek-ho.github.io/faq/" class="faqLink">❓ 자주 묻는 질문</a>
+    <a href="https://KangBeak-ho.github.io/faq/" class="faqLink">❓ 자주 묻는 질문</a>
   </div>
 </div>
 
@@ -935,7 +935,7 @@ const ctx = canvas.getContext('2d');
 function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
 resize(); addEventListener('resize', resize);
 
-const WORLD_SIZE = 4000;
+const WORLD_SIZE = 6000;
 const WORLD_CENTER = WORLD_SIZE/2;
 const WORLD_RADIUS = WORLD_SIZE/2 - 40; // 원형 맵의 실제 플레이 가능 반지름
 const RIVER_WIDTH = 260;                // 가장자리 강의 폭
@@ -964,7 +964,7 @@ const BASE_SPEED = 2.6;
 const BOOST_SPEED = 5.2;
 const TURN_RATE = 0.14;
 const START_LEN = 20;
-const ORB_COUNT = 170;
+const ORB_COUNT = 380;
 const AI_COUNT = 5;
 
 let mouse = {x: innerWidth/2, y: innerHeight/2, down:false};
@@ -1216,7 +1216,7 @@ function ensureOrbCount(){ while(orbs.length < ORB_COUNT) orbs.push(spawnOrb());
    개구리 (지도에 항상 10마리 이상 존재)
    먹으면: 40% 확률로 👑 왕관, 50% 확률로 💎 다이아 1개, 10% 확률로 꽝
 ============================================================ */
-const FROG_COUNT = 12;
+const FROG_COUNT = 27;
 let frogs = [];
 function spawnFrog(){
   const p = randomPointInCircle(60);
@@ -1322,6 +1322,7 @@ function makeSnake({name,color,isPlayer=false,isAI=false,x,y,skinId='none'}){
   return {
     id: Math.random().toString(36).slice(2),
     name, color, isPlayer, isAI, skinId,
+    aiSmart: isAI ? Math.random()<0.5 : false, // AI 절반은 똑똑하게, 절반은 예전처럼 단순하게
     segs, heading:0, speed:BASE_SPEED, boosting:false, alive:true,
     growPending:0, aiTarget:null, crowns:0, friendIds:new Set(),
     beadLight: shadeColor(color, 18),
@@ -1424,10 +1425,123 @@ function eatOrbs(s){
   if(eatenCount>0 && s.isPlayer) updateQuestProgress('eat', eatenCount);
 }
 
-function aiThink(s){
+function nearestSegmentAvoid(s){
+  // 자기 자신을 제외한 다른 뱀의 몸통(머리 포함)에 너무 가까워지면 피할 각도를 반환
+  const head = s.segs[0];
+  const AVOID_R2 = 30*30;
+  let bestAngle=null, bestD2=Infinity;
+  for(const other of snakes){
+    if(other.id===s.id || !other.alive) continue;
+    if(isFriendOf(s, other)) continue;
+    const segs = other.segs;
+    for(let i=0;i<segs.length;i+=3){
+      const seg = segs[i];
+      const d2 = dist2(head.x,head.y,seg.x,seg.y);
+      if(d2 < AVOID_R2 && d2 < bestD2){
+        bestD2 = d2;
+        bestAngle = Math.atan2(head.y-seg.y, head.x-seg.x);
+      }
+    }
+  }
+  return bestAngle;
+}
+
+function aiThinkSmart(s){
+  const head = s.segs[0];
+  const myLen = s.segs.length;
+
+  // 근처의 다른 뱀(플레이어 포함) 중 나보다 확실히 큰 상대는 위협, 확실히 작은 상대는 사냥감으로 분류
+  const HUNT_R2 = 650*650;
+  let danger=null, dDist2=Infinity;
+  let prey=null, pDist2=Infinity;
+  for(const other of snakes){
+    if(other.id===s.id || !other.alive) continue;
+    const oh = other.segs[0];
+    const d2 = dist2(head.x,head.y,oh.x,oh.y);
+    if(d2 > HUNT_R2) continue;
+    const otherLen = other.segs.length;
+    if(otherLen > myLen*1.15){
+      if(d2 < dDist2){ dDist2=d2; danger=other; }
+    } else if(otherLen < myLen*0.8 && myLen > START_LEN+12){
+      if(d2 < pDist2){ pDist2=d2; prey=other; }
+    }
+  }
+
+  let desiredAngle = s.heading;
+  let wantBoost = Math.random()<0.01;
+
+  if(danger){
+    // 나보다 큰 뱀은 위험하므로 반대 방향으로 도망
+    const dh = danger.segs[0];
+    desiredAngle = Math.atan2(head.y-dh.y, head.x-dh.x);
+    wantBoost = dDist2 < 220*220;
+    s.aiTarget = null;
+    s._spin = null;
+  } else if(prey){
+    // 나보다 작은 뱀(플레이어 포함)은 사냥감: 진행 방향을 예측해 앞을 가로막고, 가까워지면 주위를 돌아 포위
+    const ph = prey.segs[0];
+    const pDist = Math.sqrt(pDist2);
+    if(!s._spin) s._spin = Math.random()<0.5 ? 1 : -1;
+    const angToPrey = Math.atan2(ph.y-head.y, ph.x-head.x);
+    const ORBIT_R = 150;
+    if(pDist > ORBIT_R + 40){
+      const leadT = 20; // 몇 프레임 앞의 위치를 예측해 그쪽으로 미리 이동 (가로채기)
+      const predX = ph.x + Math.cos(prey.heading)*prey.speed*leadT;
+      const predY = ph.y + Math.sin(prey.heading)*prey.speed*leadT;
+      desiredAngle = Math.atan2(predY-head.y, predX-head.x);
+      wantBoost = pDist2 < 420*420;
+    } else {
+      // 사정거리 안: 접선 방향으로 돌면서 몸통으로 상대를 가두려 시도
+      desiredAngle = angToPrey + s._spin*(Math.PI/2.1);
+      wantBoost = pDist > ORBIT_R - 20;
+    }
+    s.aiTarget = null;
+  } else {
+    s._spin = null;
+    if(!s.aiTarget || Math.random()<0.02 || dist2(head.x,head.y,s.aiTarget.x,s.aiTarget.y) < 400){
+      // 근처(700px 이내)에 개구리가 있으면 왕관/다이아를 노리기 위해 우선적으로 향함
+      let bestFrog=null, bfd=Infinity;
+      for(let idx=0; idx<frogs.length; idx++){
+        const f = frogs[idx];
+        const d = dist2(head.x,head.y,f.x,f.y);
+        if(d < bfd){ bfd=d; bestFrog=f; }
+      }
+      if(bestFrog && bfd < 700*700){
+        s.aiTarget = bestFrog;
+      } else {
+        // 성능을 위해 전체 먹이를 다 훑지 않고 3개 중 1개꼴로 샘플링해서 탐색
+        let best=null, bd=Infinity;
+        for(let idx=0; idx<orbs.length; idx+=3){
+          const o = orbs[idx];
+          const d = dist2(head.x,head.y,o.x,o.y);
+          if(d < bd){ bd=d; best=o; }
+        }
+        s.aiTarget = best;
+      }
+    }
+    if(s.aiTarget) desiredAngle = Math.atan2(s.aiTarget.y-head.y, s.aiTarget.x-head.x);
+  }
+
+  // 원형 맵 가장자리에 가까워지면 중심 쪽으로 방향을 트는 회피 로직
+  const distC = distFromCenter(head.x, head.y);
+  if(distC > WORLD_RADIUS - 200){
+    desiredAngle = Math.atan2(WORLD_CENTER-head.y, WORLD_CENTER-head.x);
+  }
+
+  // 가장 중요한 안전장치: 다른 뱀의 몸통(머리 포함)에 실제로 너무 가까워지면 무조건 피함
+  const avoidAngle = nearestSegmentAvoid(s);
+  if(avoidAngle !== null){
+    desiredAngle = avoidAngle;
+    wantBoost = false;
+  }
+
+  moveSnake(s, desiredAngle, wantBoost);
+}
+
+function aiThinkDumb(s){
+  // 예전 방식: 먹이만 쫓고, 상대 머리와 가까워지면 대충 피하는 정도의 단순한 AI
   const head = s.segs[0];
   if(!s.aiTarget || Math.random()<0.02 || dist2(head.x,head.y,s.aiTarget.x,s.aiTarget.y) < 400){
-    // 근처(700px 이내)에 개구리가 있으면 왕관/다이아를 노리기 위해 우선적으로 향함
     let bestFrog=null, bfd=Infinity;
     for(let idx=0; idx<frogs.length; idx++){
       const f = frogs[idx];
@@ -1437,7 +1551,6 @@ function aiThink(s){
     if(bestFrog && bfd < 700*700){
       s.aiTarget = bestFrog;
     } else {
-      // 성능을 위해 전체 먹이를 다 훑지 않고 3개 중 1개꼴로 샘플링해서 탐색
       let best=null, bd=Infinity;
       for(let idx=0; idx<orbs.length; idx+=3){
         const o = orbs[idx];
@@ -1450,7 +1563,6 @@ function aiThink(s){
   let desiredAngle = s.heading;
   if(s.aiTarget) desiredAngle = Math.atan2(s.aiTarget.y-head.y, s.aiTarget.x-head.x);
 
-  // 원형 맵 가장자리에 가까워지면 중심 쪽으로 방향을 트는 회피 로직
   const distC = distFromCenter(head.x, head.y);
   if(distC > WORLD_RADIUS - 200){
     desiredAngle = Math.atan2(WORLD_CENTER-head.y, WORLD_CENTER-head.x);
@@ -1465,6 +1577,11 @@ function aiThink(s){
     }
   }
   moveSnake(s, desiredAngle, Math.random()<0.01);
+}
+
+function aiThink(s){
+  if(s.aiSmart) aiThinkSmart(s);
+  else aiThinkDumb(s);
 }
 
 /* ============================================================
@@ -1563,9 +1680,16 @@ function initOnline(){
   bc.onmessage = (ev)=>{
     const msg = ev.data;
     if(msg.type==='state' && msg.id !== player.id){
+      if(msg.alive===false && player.friendIds.has(msg.id)){
+        player.friendIds.delete(msg.id);
+        toast(`💔 ${msg.name}님이 죽어서 친구 목록에서 사라졌어요`);
+      }
       remoteSnakes[msg.id] = { name:msg.name, color:msg.color, segs:msg.segs, alive:msg.alive, crowns:msg.crowns||0, lastSeen: Date.now() };
     }
-    if(msg.type==='bye' && msg.id) delete remoteSnakes[msg.id];
+    if(msg.type==='bye' && msg.id){
+      delete remoteSnakes[msg.id];
+      if(player.friendIds.has(msg.id)) player.friendIds.delete(msg.id);
+    }
     if(msg.type==='deathOrbs' && Array.isArray(msg.orbs)){
       // 상대방이 죽으면서 남긴 구슬을 내 화면에도 똑같이 표시
       for(const o of msg.orbs){ orbs.push(spawnOrb(o.x, o.y, o.color, 6)); }
@@ -1607,7 +1731,12 @@ function initOnline(){
       bc.postMessage({type:'state', id:player.id, name:player.name, color:player.color, segs:player.segs.slice(0,200), alive:player.alive, crowns:player.crowns||0});
     }
     const now = Date.now();
-    for(const id in remoteSnakes){ if(now - remoteSnakes[id].lastSeen > 3000) delete remoteSnakes[id]; }
+    for(const id in remoteSnakes){
+      if(now - remoteSnakes[id].lastSeen > 3000){
+        delete remoteSnakes[id];
+        if(player.friendIds.has(id)) player.friendIds.delete(id);
+      }
+    }
   }, 60); // 100ms -> 60ms로 갱신 주기를 줄여 더 부드럽게 보이도록 함
   addEventListener('beforeunload', ()=>{ if(bc && player) bc.postMessage({type:'bye', id:player.id}); });
 }
@@ -2012,6 +2141,10 @@ function loop(){
           const crownsLost = s.crowns||0;
           s.crowns = 0;
           if(!hit.isRemote){ transferCrowns(hit, crownsLost); registerKill(hit); }
+          if(player && player.friendIds && player.friendIds.has(s.id)){
+            player.friendIds.delete(s.id);
+            toast(`💔 ${s.name}님이 죽어서 친구 목록에서 사라졌어요`);
+          }
         }
       }
     }
